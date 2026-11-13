@@ -1,0 +1,23 @@
+# Datos de cada PC: nunca se suben
+config/
+logs/
+escritorios/
+app/
+# Fondos: se descargan de su web original con el catálogo (catalogo/fondos.json)
+recursos/*
+!recursos/icono/
+!recursos/iconos-modos/
+# Compilación
+src/**/bin/
+src/**/obj/
+*.user
+# Notas y archivos propios de esta laptop
+CONTINUAR-AQUI.md
+instalar-okla-admin.bat
+okla-tarea.xml
+tools/*.log
+tools/*.err
+tools/videos-nuevos.csv
+
+# Pruebas de iconos (incluye los anteriores, que eran de otros autores)
+muestras/

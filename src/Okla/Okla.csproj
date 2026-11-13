@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>okla</AssemblyName>
+    <RootNamespace>Okla</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>okla.ico</ApplicationIcon>
+    <Version>0.2.0</Version>
+    <Product>okla</Product>
+    <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Lo que el instalador necesita en otra PC: scripts, instalador de mods, catálogo de fondos e icono. -->
+  <ItemGroup>
+    <Content Include="..\..\tools\wh-install.js" Link="tools\wh-install.js" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\tools\lib\**\*" Link="tools\lib\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\tools\crear-escritorios.ps1" Link="tools\crear-escritorios.ps1" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\tools\crear-iconos.ps1" Link="tools\crear-iconos.ps1" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\catalogo\fondos.json" Link="catalogo\fondos.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="okla.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\recursos\iconos-modos\*.png" Link="recursos\iconos-modos\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\recursos\icono\*.png" Link="recursos\icono\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

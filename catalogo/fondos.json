@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "fuente": "motionbgs.com (los fondos son de sus autores; okla solo los descarga de su web)",
+  "descarga": "https://motionbgs.com/dl/4k/{id}",
+  "respaldo": "https://motionbgs.com/dl/hd/{id}",
+  "videos": [
+    {
+      "modo": "fedora",
+      "nombre": "pixel-city-calm",
+      "motionbgs": 9584,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "fedora",
+      "nombre": "pixel-elder-tree",
+      "motionbgs": 9543,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "fedora",
+      "nombre": "pixel-koi-pond",
+      "motionbgs": 10355,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "fedora",
+      "nombre": "pixel-landscape-train",
+      "motionbgs": 1432,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "fedora",
+      "nombre": "pixel-sakura-house",
+      "motionbgs": 10040,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "fedora",
+      "nombre": "pixel-twilight",
+      "motionbgs": 10159,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "fedora",
+      "nombre": "pixel-winter-evening",
+      "motionbgs": 10160,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "fedora",
+      "nombre": "rainy-market",
+      "motionbgs": 2894,
+      "pagina": "https://motionbgs.com/rainy-japanese-market",
+      "pixel": false
+    },
+    {
+      "modo": "fedora",
+      "nombre": "street-japan",
+      "motionbgs": 3972,
+      "pagina": "https://motionbgs.com/street-in-japan",
+      "pixel": false
+    },
+    {
+      "modo": "fedora",
+      "nombre": "town-rainfall",
+      "motionbgs": 2555,
+      "pagina": "https://motionbgs.com/anime-town-rainfall",
+      "pixel": false
+    },
+    {
+      "modo": "gaming",
+      "nombre": "pixel-cosmic-space",
+      "motionbgs": 4225,
+      "pagina": "https://motionbgs.com/pixel-cosmic-space",
+      "pixel": true
+    },
+    {
+      "modo": "gaming",
+      "nombre": "pixel-cyberpunk-city",
+      "motionbgs": 232,
+      "pagina": "https://motionbgs.com/pixel-cyberpunk-night-city",
+      "pixel": true
+    },
+    {
+      "modo": "gaming",
+      "nombre": "pixel-firelink-shrine",
+      "motionbgs": 8425,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "gaming",
+      "nombre": "pixel-hollow-knight",
+      "motionbgs": 8553,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "gaming",
+      "nombre": "pixel-hornet-knight",
+      "motionbgs": 8554,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "gaming",
+      "nombre": "pixel-zelda-waterfall",
+      "motionbgs": 187,
+      "pagina": "https://motionbgs.com/zelda",
+      "pixel": true
+    },
+    {
+      "modo": "gaming",
+      "nombre": "rog",
+      "motionbgs": 5771,
+      "pagina": "https://motionbgs.com/rog",
+      "pixel": false
+    },
+    {
+      "modo": "gaming",
+      "nombre": "tech-hud",
+      "motionbgs": 5329,
+      "pagina": null,
+      "pixel": false
+    },
+    {
+      "modo": "potencia",
+      "nombre": "gear-5-technique",
+      "motionbgs": 5818,
+      "pagina": "https://motionbgs.com/gear-5-technique",
+      "pixel": false
+    },
+    {
+      "modo": "potencia",
+      "nombre": "itachi-luna",
+      "motionbgs": 1057,
+      "pagina": "https://motionbgs.com/itachi-shillouette-in-front-of-the-red-moon",
+      "pixel": false
+    },
+    {
+      "modo": "potencia",
+      "nombre": "pixel-chainsaw-man",
+      "motionbgs": 3351,
+      "pagina": "https://motionbgs.com/chainsaw-man-pixel-art",
+      "pixel": true
+    },
+    {
+      "modo": "potencia",
+      "nombre": "pixel-itachi",
+      "motionbgs": 3141,
+      "pagina": "https://motionbgs.com/pixel-art-itachi-uchiha",
+      "pixel": true
+    },
+    {
+      "modo": "potencia",
+      "nombre": "pixel-sailor-moon",
+      "motionbgs": 5178,
+      "pagina": "https://motionbgs.com/sailor-moon",
+      "pixel": true
+    },
+    {
+      "modo": "potencia",
+      "nombre": "pixel-yae-miko",
+      "motionbgs": 1577,
+      "pagina": "https://motionbgs.com/yae-miko-pixel-art2",
+      "pixel": true
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "coffee-shop",
+      "motionbgs": 6199,
+      "pagina": "https://motionbgs.com/coffee-shop",
+      "pixel": false
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "cozy-room",
+      "motionbgs": 2886,
+      "pagina": "https://motionbgs.com/cozy-room",
+      "pixel": false
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "lofi-cafe",
+      "motionbgs": 3695,
+      "pagina": "https://motionbgs.com/lofi-cafe-in-evening",
+      "pixel": false
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "pixel-cliff-shop",
+      "motionbgs": 9789,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "pixel-mario-room",
+      "motionbgs": 6610,
+      "pagina": "https://motionbgs.com/mario-pixel-room",
+      "pixel": true
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "pixel-ocean-highway",
+      "motionbgs": 10324,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "pixel-rooftop-sunset",
+      "motionbgs": 9924,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "pixel-sunset-bottle",
+      "motionbgs": 9857,
+      "pagina": null,
+      "pixel": true
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "radio-tea",
+      "motionbgs": 3636,
+      "pagina": "https://motionbgs.com/vintage-radio-and-tea",
+      "pixel": false
+    },
+    {
+      "modo": "presentacion",
+      "nombre": "retro-room",
+      "motionbgs": 5737,
+      "pagina": "https://motionbgs.com/retro-room",
+      "pixel": false
+    }
+  ]
+}
