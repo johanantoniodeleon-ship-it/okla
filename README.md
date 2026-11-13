@@ -15,9 +15,13 @@ Ctrl+Alt+E abre el editor de modos.
 
 ## Instalar
 
-Descarga el instalador desde [Releases](../../releases) y ábrelo. La primera vez okla pide permiso de administrador una sola vez y prepara todo: ffmpeg, Windhawk y sus mods, los fondos animados y los escritorios de cada modo.
+Descarga `okla-win-Setup.exe` desde [Releases](../../releases/latest) y ábrelo. Windows puede avisar de que el programa no está firmado: "Más información" → "Ejecutar de todas formas". La primera vez okla pide permiso de administrador una sola vez y prepara todo: ffmpeg, Windhawk y sus mods, los fondos animados y los escritorios de cada modo.
 
-Requisitos: Windows 11 de 64 bits y .NET 8 Desktop Runtime.
+Requisitos: Windows 11 de 64 bits (si falta .NET 8, el instalador lo descarga). okla se actualiza solo cuando sale una versión nueva.
+
+## Licencia
+
+MIT: puedes usar, copiar y modificar okla libremente manteniendo el aviso de autor (ver `LICENSE`).
 
 ## Créditos
 
@@ -28,3 +32,4 @@ Requisitos: Windows 11 de 64 bits y .NET 8 Desktop Runtime.
 - Logo de Windows del modo Pánico: [Font Awesome Free](https://fontawesome.com) (CC BY 4.0).
 - Iconos de apps por modo: [Papirus](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme), [Candy Icons](https://github.com/EliverLara/candy-icons) y [WhiteSur](https://github.com/vinceliuice/WhiteSur-icon-theme) (GPL-3.0), descargados al instalar.
 - Lectura de YAML: [js-yaml](https://github.com/nodeca/js-yaml) (MIT).
+

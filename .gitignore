@@ -21,3 +21,7 @@ tools/videos-nuevos.csv
 
 # Pruebas de iconos (incluye los anteriores, que eran de otros autores)
 muestras/
+
+# Paquetes de Velopack (se suben a GitHub Releases, no al código)
+releases/
+publicar/

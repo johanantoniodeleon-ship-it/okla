@@ -15,6 +15,9 @@ namespace Okla
         [STAThread]
         private static void Main(string[] args)
         {
+            // Velopack: atiende la instalación, desinstalación y actualizaciones antes que nada (sale solo si le toca).
+            Velopack.VelopackApp.Build().Run();
+
             var mutex = new Mutex(true, @"Local\okla-single-instance", out bool first);
             if (!first) { mutex.Dispose(); return; } // ya hay un okla abierto
 
@@ -90,6 +93,7 @@ namespace Okla
             StartObsWatch();
             StartBatteryWatch();
             StartDisplayWatch();
+            StartUpdates();
 
             // Arranca en el modo amigable (Fedora), o en Batería si el cargador está desconectado.
             if (EnBateria() && ModeStore.Find(_modes, "B") != null) { _antesDeBateria = "A"; SwitchTo("B", initial: true); }
@@ -243,6 +247,26 @@ namespace Okla
                 };
                 espera.Start();
             });
+        }
+
+        // ---- Actualizaciones (Velopack + GitHub Releases): al rato de arrancar y cada 6 horas ----
+        private void StartUpdates()
+        {
+            Log.Info("Versión de okla: " + Actualizaciones.Version);
+            if (!Actualizaciones.Instalado) return;   // copia de desarrollo
+            var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(2) };
+            t.Tick += async (_, _) =>
+            {
+                t.Interval = TimeSpan.FromHours(6);
+                var v = await Actualizaciones.Buscar();
+                if (v == null) return;
+                // Nunca a mitad de una partida o una grabación: se reintenta en el siguiente aviso.
+                if (_gameRunning || _obs?.Grabando == true) { t.Interval = TimeSpan.FromMinutes(15); return; }
+                Toast.Show("okla " + v, "Actualizando… vuelve en unos segundos", "#7fd8be", Transition.Fundido, null);
+                await System.Threading.Tasks.Task.Delay(4000);
+                if (Actualizaciones.Aplicar()) Application.Current.Shutdown();
+            };
+            t.Start();
         }
 
         // ---- Regulador de rendimiento: nivel elegido o presión de carga -> reaplicar el modo actual ----
