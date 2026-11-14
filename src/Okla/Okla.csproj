@@ -11,7 +11,7 @@
     <RootNamespace>Okla</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>okla.ico</ApplicationIcon>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <Product>okla</Product>
     <SatelliteResourceLanguages>es</SatelliteResourceLanguages>
   </PropertyGroup>

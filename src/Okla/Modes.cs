@@ -17,6 +17,8 @@ namespace Okla
         public string Color { get; set; } = "#88c0d0";
         public string Descripcion { get; set; } = "";
         public Transition Transicion { get; set; } = Transition.Fundido;
+        /// <summary>Si está desactivado no sale en el menú ni responde a su atajo (se elige al instalar o en el editor).</summary>
+        public bool Activo { get; set; } = true;
         /// <summary>Ajustes de Windows del modo. Lo que no aparezca vuelve a la base.</summary>
         public Dictionary<string, string>? Ajustes { get; set; }
     }
@@ -194,7 +196,7 @@ namespace Okla
                     Descripcion = "Limpio para grabar", Transicion = Transition.FundidoLento,
                     Ajustes = new() { ["tema"] = "oscuro", ["transparencia"] = "1", ["animaciones"] = "1",
                                       ["acento"] = "#a7c080", ["energia"] = "alto", ["autoocultar"] = "0" } },
-            new() { Key = "B", Nombre = "Batería", Tecla = 5, Color = "#a3be8c",
+            new() { Key = "B", Nombre = "Batería", Tecla = 5, Color = "#a3be8c", Activo = false,   // opcional, como el pánico
                     Descripcion = "Todo al mínimo para que dure la batería", Transicion = Transition.Instantanea,
                     Ajustes = new() { ["tema"] = "oscuro", ["transparencia"] = "0", ["animaciones"] = "0",
                                       ["acento"] = "#a3be8c", ["energia"] = "bateria", ["fondo"] = "color:#000000",
@@ -226,6 +228,7 @@ namespace Okla
                             if (m.Ajustes.TryGetValue("wh:live-video-wallpaper", out var vid) && vid.Contains("\"targetFps\":\"30\""))
                             { m.Ajustes["wh:live-video-wallpaper"] = vid.Replace("\"targetFps\":\"30\"", "\"targetFps\":\"60\""); migrated = true; }
                         }
+                        if (Elegidos(list) | Reparar(list)) migrated = true;
                         if (migrated) File.WriteAllText(Paths.ModesFile, JsonSerializer.Serialize(list, Json));
                         return list;
                     }
@@ -234,9 +237,64 @@ namespace Okla
             catch (Exception ex) { Log.Error("modos.json ilegible, uso valores por defecto: " + ex.Message); }
 
             var d = Defaults();
+            Elegidos(d); Reparar(d);
             File.WriteAllText(Paths.ModesFile, JsonSerializer.Serialize(d, Json));
             return d;
         }
+
+        /// <summary>Modos elegidos en el instalador (config\modulos.json, se aplica una vez y se borra).</summary>
+        public static string ModulosFile => Path.Combine(Paths.Config, "modulos.json");
+
+        private static bool Elegidos(List<ModeDef> list)
+        {
+            if (!File.Exists(ModulosFile)) return false;
+            try
+            {
+                var activos = JsonSerializer.Deserialize<List<string>>(File.ReadAllText(ModulosFile)) ?? new();
+                foreach (var m in list) m.Activo = activos.Contains(m.Key);
+                Log.Info("Modos elegidos al instalar: " + string.Join(", ", activos));
+            }
+            catch (Exception ex) { Log.Error("modulos.json: " + ex.Message); return false; }
+            File.Delete(ModulosFile);
+            return true;
+        }
+
+        /// <summary>
+        /// Si el video o la imagen de un modo ya no existe (borrado, o en otra PC no se descargó), pone el primero
+        /// que haya en las carpetas de ese modo. Así un modo nunca se queda con el fondo en negro.
+        /// </summary>
+        private static bool Reparar(List<ModeDef> list)
+        {
+            bool cambio = false;
+            foreach (var m in list.Where(x => x.Ajustes != null))
+            {
+                var carpeta = Carpeta(m.Key);
+                if (carpeta == "") continue;
+                string? Primero(string ext) => new[] { R(Path.Combine("videos", carpeta)), R(Path.Combine("fondos", carpeta)) }
+                    .Where(Directory.Exists).SelectMany(d => Directory.GetFiles(d, "*" + ext).OrderBy(n => n)).FirstOrDefault();
+
+                if (m.Ajustes!.TryGetValue("wh:live-video-wallpaper", out var vid) && vid.Contains("\"activo\":\"1\""))
+                {
+                    var d = JsonSerializer.Deserialize<Dictionary<string, string>>(vid);
+                    if (d != null && d.TryGetValue("videoPath", out var vp) && !File.Exists(vp) && Primero(".mp4") is string nuevo)
+                    {
+                        d["videoPath"] = nuevo; m.Ajustes["wh:live-video-wallpaper"] = JsonSerializer.Serialize(d); cambio = true;
+                        Log.Info($"{m.Nombre}: falta {Path.GetFileName(vp)}, uso {Path.GetFileName(nuevo)}");
+                    }
+                }
+                if (m.Ajustes.TryGetValue("fondo", out var f) && f.StartsWith("img:") && !File.Exists(f[4..]) && Primero(".jpg") is string img)
+                {
+                    m.Ajustes["fondo"] = "img:" + img; cambio = true;
+                    Log.Info($"{m.Nombre}: falta {Path.GetFileName(f[4..])}, uso {Path.GetFileName(img)}");
+                }
+            }
+            return cambio;
+        }
+
+        public static bool EstaActivo(IEnumerable<ModeDef> modes, string key) => Find(modes, key)?.Activo == true;
+
+        /// <summary>Los modos de fábrica sin sus ajustes (para la pantalla de personalización del instalador).</summary>
+        public static List<ModeDef> Resumen() => BaseDefaults().Select(m => { m.Ajustes = null; return m; }).ToList();
 
         public static AppState LoadState()
         {

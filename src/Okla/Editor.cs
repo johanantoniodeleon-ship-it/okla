@@ -127,7 +127,8 @@ namespace Okla
                 var atajo = new TextBlock { Text = $"Ctrl+Alt+{m.Tecla}", FontSize = 11, Foreground = B(Faint), VerticalAlignment = VerticalAlignment.Center };
                 DockPanel.SetDock(atajo, Dock.Right); fila.Children.Add(atajo);
                 var txt = new StackPanel();
-                txt.Children.Add(new TextBlock { Text = m.Nombre, FontSize = 14, FontWeight = sel ? FontWeights.SemiBold : FontWeights.Normal, Foreground = B(sel ? Fg : Dim) });
+                txt.Children.Add(new TextBlock { Text = m.Nombre + (m.Activo ? "" : "  · desactivado"), FontSize = 14, FontWeight = sel ? FontWeights.SemiBold : FontWeights.Normal, Foreground = B(sel ? Fg : Dim) });
+                if (!m.Activo) fila.Opacity = 0.5;
                 txt.Children.Add(new TextBlock { Text = m.Descripcion, FontSize = 11, Foreground = B(Faint), TextTrimming = TextTrimming.CharacterEllipsis });
                 fila.Children.Add(txt);
                 var item = new Border { Child = fila, CornerRadius = new CornerRadius(8), Margin = new Thickness(0, 0, 0, 4), Cursor = Cursors.Hand,
@@ -254,6 +255,10 @@ namespace Okla
         {
             var colorBox = Texto(M.Color, v => { if (TryColor(v) != null) M.Color = v.Trim(); }, 130);
             var sp = new StackPanel();
+            sp.Children.Add(Tarjeta("Disponible", M.Key == "B"
+                    ? "Activado: al desconectar el cargador okla pregunta si quieres este modo, y aparece en la bandeja junto al pánico."
+                    : "Desactivado: no sale en la bandeja ni responde a su atajo, y okla no cambia a él solo.",
+                Fila("Modo", Opciones(new[] { ("1", "Activado"), ("0", "Desactivado") }, M.Activo ? "1" : "0", v => { M.Activo = v == "1"; Pintar(); }))));
             sp.Children.Add(Tarjeta("Identidad", "Cómo se llama el modo y su color en la bandeja, la pantalla de carga y el mini hub.",
                 Fila("Nombre", Texto(M.Nombre, v => M.Nombre = v)),
                 Fila("Descripción", Texto(M.Descripcion, v => M.Descripcion = v, 480)),

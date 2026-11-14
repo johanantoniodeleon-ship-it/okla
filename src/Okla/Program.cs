@@ -95,9 +95,11 @@ namespace Okla
             StartDisplayWatch();
             StartUpdates();
 
-            // Arranca en el modo amigable (Fedora), o en Batería si el cargador está desconectado.
-            if (EnBateria() && ModeStore.Find(_modes, "B") != null) { _antesDeBateria = "A"; SwitchTo("B", initial: true); }
-            else SwitchTo("A", initial: true);
+            // Arranca en el modo amigable (Fedora) o, si está desactivado, en el primero activo.
+            var inicio = ModeStore.EstaActivo(_modes, "A") ? "A" : _modes.FirstOrDefault(m => m.Activo && m.Key != "B")?.Key;
+            if (inicio != null) SwitchTo(inicio, initial: true);
+            // Sin cargador: se pregunta (nunca se cambia a Batería sin avisar).
+            if (EnBateria()) PreguntarBateria();
         }
 
         private void RegisterHotkeys()
@@ -143,8 +145,7 @@ namespace Okla
             {
                 _modes = nuevos;
                 ModeStore.SaveModes(_modes);
-                foreach (var m in _modes)
-                    if (_modeItems.TryGetValue(m.Key, out var it)) it.Text = $"{m.Nombre}\tCtrl+Alt+{m.Tecla}";
+                RehacerMenu();   // nombres, y modos activados o desactivados
                 Log.Info("Editor: modos guardados" + (probar != null ? $", probando {probar}" : ""));
                 var cur = ModeStore.Find(_modes, _state.ModoActual);
                 if (probar != null) SwitchTo(probar);
@@ -157,19 +158,38 @@ namespace Okla
 
         private void BuildTray()
         {
+            _tray = new WinForms.NotifyIcon { ContextMenuStrip = CrearMenu(), Visible = true, Text = "okla" };
+        }
+
+        /// <summary>Vuelve a armar el menú (al activar o desactivar modos en el editor).</summary>
+        private void RehacerMenu()
+        {
+            if (_tray == null) return;
+            var viejo = _tray.ContextMenuStrip;
+            _modeItems.Clear(); _nivelItems.Clear();
+            _tray.ContextMenuStrip = CrearMenu();
+            viejo?.Dispose();
+            foreach (var (k, it) in _modeItems) it.Checked = k == _state.ModoActual;
+        }
+
+        private WinForms.ContextMenuStrip CrearMenu()
+        {
             var menu = new WinForms.ContextMenuStrip { ShowImageMargin = true, ImageScalingSize = new System.Drawing.Size(24, 24) };
             var title = new WinForms.ToolStripMenuItem("okla") { Enabled = false };
             menu.Items.Add(title);
             menu.Items.Add(new WinForms.ToolStripSeparator());
-            foreach (var m in _modes)
+            WinForms.ToolStripMenuItem ItemModo(ModeDef m, string? texto = null)
             {
                 var key = m.Key;
-                var it = new WinForms.ToolStripMenuItem($"{m.Nombre}\tCtrl+Alt+{m.Tecla}") { Image = IconosModos.Gdi(key) };
+                var it = new WinForms.ToolStripMenuItem($"{texto ?? m.Nombre}\tCtrl+Alt+{m.Tecla}") { Image = IconosModos.Gdi(key) };
                 it.Click += (_, _) => SwitchTo(key);
                 _modeItems[key] = it;
-                menu.Items.Add(it);
+                return it;
             }
+            // Modos normales (Batería va aparte, con el pánico: es un modo de emergencia, no de uso diario).
+            foreach (var m in _modes.Where(m => m.Activo && m.Key != "B")) menu.Items.Add(ItemModo(m));
             menu.Items.Add(new WinForms.ToolStripSeparator());
+            if (ModeStore.Find(_modes, "B") is { Activo: true } bat) menu.Items.Add(ItemModo(bat, "Modo Batería"));
             var panic = new WinForms.ToolStripMenuItem("Restaurar Windows (pánico)\tCtrl+Alt+0") { Image = IconosModos.Gdi("panico") };
             panic.Click += (_, _) => Panic();
             menu.Items.Add(panic);
@@ -177,9 +197,12 @@ namespace Okla
             rebase.Click += (_, _) => Rebase();
             menu.Items.Add(rebase);
             menu.Items.Add(MenuRendimiento());
-            var hub = new WinForms.ToolStripMenuItem("Abrir hub de juegos");
-            hub.Click += (_, _) => { if (_state.ModoActual != "J") SwitchTo("J"); else ShowHub(); };
-            menu.Items.Add(hub);
+            if (ModeStore.EstaActivo(_modes, "J"))
+            {
+                var hub = new WinForms.ToolStripMenuItem("Abrir hub de juegos");
+                hub.Click += (_, _) => { if (_state.ModoActual != "J") SwitchTo("J"); else ShowHub(); };
+                menu.Items.Add(hub);
+            }
             var editor = new WinForms.ToolStripMenuItem("Editor de modos\tCtrl+Alt+E");
             editor.Click += (_, _) => OpenEditor();
             menu.Items.Add(editor);
@@ -190,8 +213,7 @@ namespace Okla
             var exit = new WinForms.ToolStripMenuItem("Salir de okla");
             exit.Click += (_, _) => Application.Current.Shutdown();
             menu.Items.Add(exit);
-
-            _tray = new WinForms.NotifyIcon { ContextMenuStrip = menu, Visible = true, Text = "okla" };
+            return menu;
         }
 
         // ---- OBS: al grabar, Presentación; al terminar, el modo de antes ----
@@ -203,7 +225,7 @@ namespace Okla
             _obs = new ObsWatcher();
             _obs.GrabacionEmpezo += () => Application.Current.Dispatcher.BeginInvoke(async () =>
             {
-                if (_state.ModoActual == "P") return;
+                if (_state.ModoActual == "P" || !ModeStore.EstaActivo(_modes, "P")) return;
                 if (_gameRunning) { Log.Info("Grabando un juego: se queda en Gaming"); return; }
                 _antesDeGrabar = _state.ModoActual;
                 // La grabación se pausa mientras cambia el modo: el video empieza ya en Presentación, sin la transición.
@@ -333,16 +355,9 @@ namespace Okla
                 Application.Current.Dispatcher.BeginInvoke(() =>
                 {
                     bool bateria = EnBateria();
-                    if (bateria && _state.ModoActual != "B")
-                    {
-                        if (_gameRunning) { Log.Info("Cargador desconectado jugando: se queda en Gaming"); return; }
-                        if (_obs?.Grabando == true) { Log.Info("Cargador desconectado grabando: se queda en Presentación"); return; }
-                        Log.Info("Cargador desconectado: modo Batería");
-                        _antesDeBateria = _state.ModoActual;
-                        _cambioPorCargador = true;
-                        SwitchTo("B");
-                    }
-                    else if (!bateria && _state.ModoActual == "B" && _antesDeBateria != null)
+                    if (bateria && _state.ModoActual != "B") PreguntarBateria();
+                    else if (!bateria) { _preguntaBateria?.Cancelar(); _preguntaBateria = null; }
+                    if (!bateria && _state.ModoActual == "B" && _antesDeBateria != null)
                     {
                         var antes = _antesDeBateria == "" ? "A" : _antesDeBateria;
                         Log.Info($"Cargador conectado: vuelve a {antes}");
@@ -354,10 +369,37 @@ namespace Okla
             };
         }
 
+        /// <summary>
+        /// Cargador desconectado: pregunta si se activa el modo Batería (solo si ese modo está activado, y nunca
+        /// jugando ni grabando). Si no hay respuesta en 30 s, no se cambia nada.
+        /// </summary>
+        private Pregunta? _preguntaBateria;
+
+        private void PreguntarBateria()
+        {
+            if (!ModeStore.EstaActivo(_modes, "B") || _preguntaBateria != null) return;
+            if (_gameRunning) { Log.Info("Cargador desconectado jugando: no se pregunta"); return; }
+            if (_obs?.Grabando == true) { Log.Info("Cargador desconectado grabando: no se pregunta"); return; }
+            Log.Info("Cargador desconectado: se pregunta por el modo Batería");
+            var b = ModeStore.Find(_modes, "B")!;
+            _preguntaBateria = new Pregunta("Cargador desconectado", "¿Activo el modo Batería? Baja el brillo al 40 %, apaga efectos y congela apps de fondo para que dure más.",
+                b.Color, "B", "Activar", "Ahora no", 30, si =>
+                {
+                    _preguntaBateria = null;
+                    Log.Info("Modo Batería: " + (si ? "aceptado" : "no"));
+                    if (!si || !EnBateria() || _state.ModoActual == "B") return;
+                    _antesDeBateria = _state.ModoActual;
+                    _cambioPorCargador = true;
+                    SwitchTo("B");
+                });
+            _preguntaBateria.Show();
+        }
+
         public System.Threading.Tasks.Task SwitchTo(string key, bool initial = false)
         {
             var m = ModeStore.Find(_modes, key);
             if (m == null) return System.Threading.Tasks.Task.CompletedTask;
+            if (!m.Activo) { Log.Info($"{m.Nombre} está desactivado: se ignora"); return System.Threading.Tasks.Task.CompletedTask; }
             // Si el usuario cambia de modo a mano, el cargador ya no decide a qué modo volver.
             if (!_cambioPorCargador && !initial) _antesDeBateria = key == "B" ? _antesDeBateria : null;
             _cambioPorCargador = false;
@@ -490,6 +532,8 @@ namespace Okla
                     _gameRunning = true;
                     Log.Info("Juego detectado: " + running.Nombre);
                     _hub?.Hide();
+                    if (!ModeStore.EstaActivo(_modes, "J")) return;   // sin modo Gaming, okla no toca nada al jugar
+                    _preguntaBateria?.Cancelar(); _preguntaBateria = null;
                     if (_state.ModoActual != "J") SwitchTo("J");
                     var proc = running.Proceso;
                     System.Threading.Tasks.Task.Run(() => AppPause.Pausar(proc));

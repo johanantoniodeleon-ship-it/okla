@@ -28,6 +28,13 @@ namespace Okla
         private static string MarcaFile => Path.Combine(Paths.Config, "instalado.json");
         public static bool Hecho => File.Exists(MarcaFile);
 
+        /// <summary>Modos que el usuario eligió en la pantalla de personalización (null = todos).</summary>
+        public static HashSet<string>? ModosElegidos;
+
+        /// <summary>Carpeta de recursos -> modo (para bajar solo los fondos de los modos elegidos).</summary>
+        private static string ModoDeCarpeta(string carpeta) => carpeta switch
+        { "gaming" => "J", "fedora" => "A", "potencia" => "G", "presentacion" => "P", "bateria" => "B", _ => "" };
+
         private static string AppDir => AppContext.BaseDirectory;
         private static string WindhawkDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Windhawk");
 
@@ -170,6 +177,7 @@ namespace Okla
             string plantilla = (string?)cat["descarga"] ?? "https://motionbgs.com/dl/4k/{id}";
             string respaldo = (string?)cat["respaldo"] ?? "https://motionbgs.com/dl/hd/{id}";
             var lista = cat["videos"]!.AsArray().Select(v => (modo: (string)v!["modo"]!, nombre: (string)v["nombre"]!, id: (int)v["motionbgs"]!))
+                        .Where(v => ModosElegidos == null || ModosElegidos.Contains(ModoDeCarpeta(v.modo)))
                         .Where(v => !File.Exists(Path.Combine(Paths.Recursos, "videos", v.modo, v.nombre + ".mp4"))).ToList();
             if (lista.Count == 0) { p("Ya estaban todos", 1); return; }
 
@@ -257,6 +265,97 @@ namespace Okla
             WindowStartupLocation = WindowStartupLocation.CenterScreen; Background = Bg;
             try { Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri(Path.Combine(AppContext.BaseDirectory, "okla.ico"))); } catch { }
 
+            _pasos = ConstruirPasos();
+            Content = ConstruirPersonalizar();
+            Closing += (_, _) => _cts.Cancel();
+        }
+
+        // ---------------- 1) personalizar: qué modos quiere el usuario ----------------
+        private readonly Dictionary<string, CheckBox> _elegir = new();
+        private readonly UIElement _pasos;
+
+        private UIElement ConstruirPersonalizar()
+        {
+            // Si okla ya estaba instalado (--instalar para reparar), se parte de lo que el usuario tenía.
+            var actuales = new Dictionary<string, bool>();
+            try
+            {
+                if (File.Exists(Paths.ModesFile))
+                    foreach (var m in JsonSerializer.Deserialize<List<ModeDef>>(File.ReadAllText(Paths.ModesFile)) ?? new())
+                        actuales[m.Key] = m.Activo;
+            }
+            catch { }
+
+            var sp = new StackPanel { Margin = new Thickness(28) };
+            sp.Children.Add(new TextBlock { Text = "Elige tus modos", FontSize = 26, FontWeight = FontWeights.SemiBold, Foreground = Fg });
+            sp.Children.Add(new TextBlock { Text = "Como elegir clase antes de la aventura: activa los que vayas a usar. Podrás cambiarlo cuando quieras en el editor (Ctrl+Alt+E).",
+                                            TextWrapping = TextWrapping.Wrap, Foreground = Dim, Margin = new Thickness(0, 4, 0, 16) });
+            foreach (var m in ModeStore.Resumen())
+            {
+                bool on = actuales.TryGetValue(m.Key, out var a) ? a : m.Activo;
+                string extra = m.Key switch
+                {
+                    "J" => "Se pone solo al abrir un juego.",
+                    "P" => "Se pone solo al grabar con OBS.",
+                    "B" => "Opcional: al desconectar el cargador, okla te pregunta si lo activas.",
+                    _ => "",
+                };
+                sp.Children.Add(Tarjeta(m.Key, m.Nombre, $"{m.Descripcion}. {extra}".Trim(), $"Ctrl+Alt+{m.Tecla}", on, true));
+            }
+            sp.Children.Add(Tarjeta("panico", "Pánico", "Devuelve Windows a como estaba. Siempre disponible.", "Ctrl+Alt+0", true, false));
+
+            var sig = new Button { Content = "Siguiente", Padding = new Thickness(22, 8, 22, 8), Margin = new Thickness(0, 18, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
+            sig.Click += (_, _) =>
+            {
+                var elegidos = _elegir.Where(kv => kv.Value.IsChecked == true).Select(kv => kv.Key).ToList();
+                if (!elegidos.Any(k => k != "B"))
+                {
+                    MessageBox.Show(this, "Elige al menos un modo además de Batería.", "okla", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+                Directory.CreateDirectory(Paths.Config);
+                File.WriteAllText(ModeStore.ModulosFile, JsonSerializer.Serialize(elegidos));
+                Instalador.ModosElegidos = new HashSet<string>(elegidos);
+                Log.Info("Instalador: modos elegidos " + string.Join(", ", elegidos));
+                Content = _pasos;
+            };
+            sp.Children.Add(sig);
+            return sp;
+        }
+
+        private UIElement Tarjeta(string clave, string nombre, string texto, string atajo, bool marcado, bool editable)
+        {
+            var fila = new DockPanel();
+            if (IconosModos.Wpf(clave) is { } src)
+            {
+                var img = new Image { Source = src, Width = 40, Height = 40, Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center };
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+                DockPanel.SetDock(img, Dock.Left); fila.Children.Add(img);
+            }
+            var cb = new CheckBox { IsChecked = marcado, IsEnabled = editable, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0) };
+            DockPanel.SetDock(cb, Dock.Right); fila.Children.Add(cb);
+            if (editable) _elegir[clave] = cb;
+            var t = new StackPanel();
+            var cab = new TextBlock { FontSize = 15, Foreground = Fg };
+            cab.Inlines.Add(new System.Windows.Documents.Run(nombre) { FontWeight = FontWeights.SemiBold });
+            cab.Inlines.Add(new System.Windows.Documents.Run("   " + atajo) { Foreground = Dim, FontSize = 12 });
+            t.Children.Add(cab);
+            t.Children.Add(new TextBlock { Text = texto, Foreground = Dim, FontSize = 12, TextWrapping = TextWrapping.Wrap });
+            fila.Children.Add(t);
+            var borde = new Border { Child = fila, Padding = new Thickness(12, 10, 12, 10), Margin = new Thickness(0, 0, 0, 8), CornerRadius = new CornerRadius(10),
+                                     Background = new SolidColorBrush(Color.FromRgb(0x1d, 0x20, 0x28)), Cursor = editable ? System.Windows.Input.Cursors.Hand : null };
+            if (editable)
+            {
+                void Pintar() => borde.Opacity = cb.IsChecked == true ? 1 : 0.55;
+                cb.Checked += (_, _) => Pintar(); cb.Unchecked += (_, _) => Pintar(); Pintar();
+                borde.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is not CheckBox) cb.IsChecked = cb.IsChecked != true; };
+            }
+            return borde;
+        }
+
+        // ---------------- 2) instalar ----------------
+        private UIElement ConstruirPasos()
+        {
             var sp = new StackPanel { Margin = new Thickness(28) };
             sp.Children.Add(new TextBlock { Text = "okla", FontSize = 30, FontWeight = FontWeights.SemiBold, Foreground = Fg });
             sp.Children.Add(new TextBlock { Text = "Vamos a dejar tu Windows listo para cambiar de modo con un atajo. Tarda unos minutos (descarga ~1 GB de fondos).",
@@ -275,9 +374,8 @@ namespace Okla
             }
             sp.Children.Add(_barra);
             sp.Children.Add(_boton);
-            Content = sp;
             _boton.Click += async (_, _) => { if (Terminado) { DialogResult = true; return; } await Correr(); };
-            Closing += (_, _) => _cts.Cancel();
+            return sp;
         }
 
         private async Task Correr()
