@@ -304,9 +304,20 @@ namespace Okla
             }
             sp.Children.Add(Tarjeta("panico", "Pánico", "Devuelve Windows a como estaba. Siempre disponible.", "Ctrl+Alt+0", true, false));
 
+            // okla conectada: permiso para el informe técnico anónimo (se puede cambiar en la bandeja).
+            CheckBox? compartir = null;
+            if (Red.Configurado)
+            {
+                compartir = new CheckBox { IsChecked = Red.Compartir, Margin = new Thickness(2, 16, 0, 0), Foreground = Fg,
+                    Content = new TextBlock { TextWrapping = TextWrapping.Wrap, Width = 470, Foreground = Fg,
+                        Text = "Ayudar a mejorar okla: enviar datos técnicos anónimos (procesador, gráfica, RAM, pantalla y errores de okla). Nunca archivos, nombres ni cuentas." } };
+                sp.Children.Add(compartir);
+            }
+
             var sig = new Button { Content = "Siguiente", Padding = new Thickness(22, 8, 22, 8), Margin = new Thickness(0, 18, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
             sig.Click += (_, _) =>
             {
+                if (compartir != null) { Red.Estado.Avisado = true; Red.Compartir = compartir.IsChecked == true; }
                 var elegidos = _elegir.Where(kv => kv.Value.IsChecked == true).Select(kv => kv.Key).ToList();
                 if (!elegidos.Any(k => k != "B"))
                 {

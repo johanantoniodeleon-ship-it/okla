@@ -100,6 +100,7 @@ namespace Okla
             StartBatteryWatch();
             StartDisplayWatch();
             StartUpdates();
+            StartRed();
 
             // Arranca en el modo amigable (Fedora) o, si está desactivado, en el primero activo.
             var inicio = ModeStore.EstaActivo(_modes, "A") ? "A" : _modes.FirstOrDefault(m => m.Activo && m.Key != "B")?.Key;
@@ -224,6 +225,12 @@ namespace Okla
             activos.DropDownItems.Add(new WinForms.ToolStripSeparator());
             activos.DropDownItems.Add(new WinForms.ToolStripMenuItem("Pánico (siempre activo)") { Checked = true, Enabled = false, Image = IconosModos.Gdi("panico") });
             menu.Items.Add(activos);
+            if (Red.Configurado)
+            {
+                var datos = new WinForms.ToolStripMenuItem("Compartir datos técnicos anónimos") { Checked = Red.Compartir };
+                datos.Click += (_, _) => { Red.Compartir = !Red.Compartir; datos.Checked = Red.Compartir; };
+                menu.Items.Add(datos);
+            }
             if (ModeStore.EstaActivo(_modes, "J"))
             {
                 var hub = new WinForms.ToolStripMenuItem("Abrir hub de juegos");
@@ -542,6 +549,22 @@ namespace Okla
             });
         }
         private System.IO.FileSystemWatcher? _openWatch;
+
+        /// <summary>okla conectada: informe técnico anónimo al minuto de arrancar (si el usuario lo permite).</summary>
+        private void StartRed()
+        {
+            if (!Red.Configurado) return;
+            if (!Red.Estado.Avisado)
+            {
+                // Instalaciones de antes de okla conectada: se avisa una vez, en vez de enviar a escondidas.
+                Red.Estado.Avisado = true; Red.Guardar();
+                _tray?.ShowBalloonTip(10000, "okla ahora ayuda a mejorarse",
+                    "Manda datos técnicos anónimos (procesador, gráfica, pantalla, errores). Puedes apagarlo en la bandeja: \"Compartir datos técnicos anónimos\".", WinForms.ToolTipIcon.Info);
+            }
+            var t = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
+            t.Tick += (_, _) => { t.Stop(); _ = Red.EnviarInforme(_modes.Where(m => m.Activo).Select(m => m.Key).ToList()); };
+            t.Start();
+        }
 
         private void ShowHub()
         {
