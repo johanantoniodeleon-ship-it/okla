@@ -187,7 +187,7 @@ namespace Okla
                     Descripcion = "Amigable, Nord, inspirado en GNOME", Transicion = Transition.Fundido,
                     Ajustes = new() { ["tema"] = "oscuro", ["transparencia"] = "1", ["animaciones"] = "1",
                                       ["acento"] = "#88c0d0", ["energia"] = "equilibrado",
-                                      ["iconos"] = "1", ["autoocultar"] = "0" } },
+                                      ["iconos"] = "1", ["autoocultar"] = "1" } },
             new() { Key = "G", Nombre = "Potencia", Tecla = 3, Color = "#7c8cff",
                     Descripcion = "Todo lo posible, fluido", Transicion = Transition.Barrido,
                     Ajustes = new() { ["tema"] = "oscuro", ["transparencia"] = "1", ["animaciones"] = "1",

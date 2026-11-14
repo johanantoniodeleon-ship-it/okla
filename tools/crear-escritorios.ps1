@@ -55,3 +55,19 @@ foreach ($m in $modos.Keys) {
   foreach ($n in $modos[$m]) { Copy-Item $accesos[$n] $dir -Force }
   Write-Output ("{0}: {1} -> {2}" -f $m, $modos[$m].Count, ($modos[$m] -join ', '))
 }
+
+# Acceso a okla en los escritorios de los modos (menos Presentación, que queda limpio).
+# Abrir okla estando ya en marcha abre el editor de modos.
+$exe = @(
+  (Join-Path $env:LOCALAPPDATA 'okla\current\okla.exe'),   # instalado con Velopack
+  (Join-Path $Okla 'app\okla.exe')                         # copia de desarrollo
+) | Where-Object { Test-Path $_ } | Select-Object -First 1
+if ($exe) {
+  $ws = New-Object -ComObject WScript.Shell
+  foreach ($m in 'gaming', 'fedora', 'potencia') {
+    $s = $ws.CreateShortcut((Join-Path (Join-Path $root $m) 'okla.lnk'))
+    $s.TargetPath = $exe; $s.WorkingDirectory = Split-Path $exe; $s.Description = 'okla: modos de escritorio'
+    $s.IconLocation = "$exe,0"; $s.Save()
+  }
+  Write-Output "okla.lnk -> $exe"
+}

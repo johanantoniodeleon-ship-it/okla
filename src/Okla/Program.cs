@@ -19,7 +19,13 @@ namespace Okla
             Velopack.VelopackApp.Build().Run();
 
             var mutex = new Mutex(true, @"Local\okla-single-instance", out bool first);
-            if (!first) { mutex.Dispose(); return; } // ya hay un okla abierto
+            if (!first)
+            {
+                // Ya hay un okla abierto: se le pide que muestre el editor (así el icono del escritorio "abre" okla).
+                mutex.Dispose();
+                try { System.IO.File.WriteAllText(System.IO.Path.Combine(Paths.Config, "abrir.senal"), ""); } catch { }
+                return;
+            }
 
             Paths.Ensure();
             bool instalar = args.Contains("--instalar") || !Instalador.Hecho;
@@ -197,6 +203,27 @@ namespace Okla
             rebase.Click += (_, _) => Rebase();
             menu.Items.Add(rebase);
             menu.Items.Add(MenuRendimiento());
+            // Modos activos: encender o apagar cada modo sin abrir el editor.
+            var activos = new WinForms.ToolStripMenuItem("Modos activos");
+            foreach (var m in _modes)
+            {
+                var mm = m;
+                var it = new WinForms.ToolStripMenuItem(m.Nombre) { Checked = m.Activo, Image = IconosModos.Gdi(m.Key), CheckOnClick = false };
+                it.Click += (_, _) =>
+                {
+                    if (mm.Activo && _modes.Count(x => x.Activo && x.Key != "B") == 1 && mm.Key != "B") { _tray?.ShowBalloonTip(3000, "okla", "Deja al menos un modo activo.", WinForms.ToolTipIcon.Info); return; }
+                    mm.Activo = !mm.Activo;
+                    ModeStore.SaveModes(_modes);
+                    Log.Info($"{mm.Nombre}: {(mm.Activo ? "activado" : "desactivado")} desde la bandeja");
+                    // Si se apaga el modo en uso, se pasa al primero que siga activo.
+                    if (!mm.Activo && _state.ModoActual == mm.Key && _modes.FirstOrDefault(x => x.Activo && x.Key != "B") is { } otro) SwitchTo(otro.Key);
+                    Application.Current.Dispatcher.BeginInvoke(RehacerMenu);
+                };
+                activos.DropDownItems.Add(it);
+            }
+            activos.DropDownItems.Add(new WinForms.ToolStripSeparator());
+            activos.DropDownItems.Add(new WinForms.ToolStripMenuItem("Pánico (siempre activo)") { Checked = true, Enabled = false, Image = IconosModos.Gdi("panico") });
+            menu.Items.Add(activos);
             if (ModeStore.EstaActivo(_modes, "J"))
             {
                 var hub = new WinForms.ToolStripMenuItem("Abrir hub de juegos");
@@ -503,7 +530,18 @@ namespace Okla
                 try { System.IO.File.Delete(sig); } catch { }
                 Application.Current.Shutdown();
             });
+
+            // Abrir okla (icono del escritorio o menú Inicio) con okla ya corriendo: se abre el editor.
+            var abrir = System.IO.Path.Combine(Paths.Config, "abrir.senal");
+            try { System.IO.File.Delete(abrir); } catch { }
+            _openWatch = new System.IO.FileSystemWatcher(Paths.Config, "abrir.senal") { EnableRaisingEvents = true };
+            _openWatch.Created += (_, _) => Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                try { System.IO.File.Delete(abrir); } catch { }
+                OpenEditor();
+            });
         }
+        private System.IO.FileSystemWatcher? _openWatch;
 
         private void ShowHub()
         {
