@@ -73,7 +73,8 @@ namespace Okla
                 {
                     var old = s.GetValue(key);
                     if (old?.ToString() == val) continue;
-                    if (old is int && int.TryParse(val, out var iv)) s.SetValue(key, iv, RegistryValueKind.DWord);
+                    // Números y sí/no van como DWORD (así los guarda Windhawk), también si el ajuste aún no existía.
+                    if ((old is int || old == null) && int.TryParse(val, out var iv)) s.SetValue(key, iv, RegistryValueKind.DWord);
                     else s.SetValue(key, val, RegistryValueKind.String);
                     settingsChanged = true;
                 }

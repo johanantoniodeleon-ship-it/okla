@@ -22,7 +22,7 @@ namespace Okla
             new DesktopFolderSetting(), new IconSizeSetting(), new DesktopIconsSetting(),
             new WindhawkModSetting("translucent-windows", "Ventanas translúcidas", "BackgroundEffects.type"),
             new WindhawkModSetting("taskbar-dock-animation", "Animación dock"),
-            new WindhawkModSetting("windows-11-taskbar-styler", "Barra de tareas", "theme"),
+            new WindhawkModSetting("windows-11-taskbar-styler", "Barra de tareas", "theme", "controlStyles[0].target", "controlStyles[0].styles[0]"),
             new WindhawkModSetting("windows-11-start-menu-styler", "Menú Inicio", "theme"),
             new WindhawkModSetting("windows-11-file-explorer-styler", "Explorador", "theme"),
             new WindhawkModSetting("windows-11-notification-center-styler", "Notificaciones", "theme"),
@@ -47,7 +47,7 @@ namespace Okla
             new WindhawkModSetting("taskbar-fade", "Barra que se atenúa"),
             new WindhawkModSetting("shake-to-find-cursor", "Agitar para ver el cursor"),
             new WindhawkModSetting("taskbar-tray-system-icon-tweaks", "Ocultar iconos de bandeja"),
-            new WindhawkModSetting("zen-desktop-toggle-icons", "Iconos con doble clic"),
+            new WindhawkModSetting("zen-desktop-toggle-icons", "Iconos con doble clic", "enableAutoHide"),
             new WindhawkModSetting("monitor-rounded-edges", "Esquinas de pantalla"),
         };
 

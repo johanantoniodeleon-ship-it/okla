@@ -67,7 +67,11 @@ namespace Okla
                 Left = 0, Top = 0, Width = SystemParameters.PrimaryScreenWidth, Height = SystemParameters.PrimaryScreenHeight,
                 Content = root, Opacity = _style.In == TimeSpan.Zero ? 1 : 0, Title = "okla"
             };
-            _w.SourceInitialized += (_, _) => Toast.MakeClickThrough(_w);
+            _w.SourceInitialized += (_, _) => { Toast.MakeClickThrough(_w); Encima(); };
+            // La barra de tareas también es "siempre encima": sin esto puede quedar por delante de la pantalla de carga.
+            var encima = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+            encima.Tick += (_, _) => { if (_closing) encima.Stop(); else Encima(); };
+            encima.Start();
             _w.Show();
             if (_style.In > TimeSpan.Zero)
                 _w.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, _style.In) { EasingFunction = new QuadraticEase() });
@@ -88,6 +92,13 @@ namespace Okla
             cover.Tick += (_, _) => { cover.Stop(); _covered.TrySetResult(); };
             cover.Start();
         }
+
+        private void Encima()
+        {
+            var h = new System.Windows.Interop.WindowInteropHelper(_w).Handle;
+            if (h != IntPtr.Zero) SetWindowPos(h, new IntPtr(-1) /* HWND_TOPMOST */, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 /* NOSIZE NOMOVE NOACTIVATE */);
+        }
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint f);
 
         /// <summary>Texto de estado ("Barra de tareas…"). Se puede llamar desde cualquier hilo.</summary>
         public void Report(string texto) =>

@@ -8,7 +8,8 @@ const https = require('https');
 const { spawn, execFileSync } = require('child_process');
 const yaml = require('./lib/js-yaml.js');
 
-const WH = path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Windhawk');
+// VSCodium de Windhawk es de 32 bits: para él ProgramFiles es "Program Files (x86)". ProgramW6432 es la carpeta de 64 bits.
+const WH = path.join(process.env.ProgramW6432 || process.env.ProgramFiles || 'C:\\Program Files', 'Windhawk');
 const COMPILER = path.join(WH, 'Compiler');
 const DATA = path.join(process.env.ProgramData || 'C:\\ProgramData', 'Windhawk');
 // El motor está en Engine\<versión>: se usa la más nueva instalada.
@@ -101,6 +102,10 @@ async function install(id) {
   if (archs.includes('x86-64') || archs.includes('amd64')) targets.push(['x86_64-w64-mingw32', '64']);
   const opts = (meta.compilerOptions || '').split(/\s+/).filter(Boolean);
   const lib = `${id}_${version}_${Math.floor(100000 + Math.random() * 900000)}.dll`;
+
+  // En un Windhawk recién instalado estas carpetas todavía no existen.
+  for (const [, sub] of targets) fs.mkdirSync(path.join(DATA, 'Engine', 'Mods', sub), { recursive: true });
+  fs.mkdirSync(path.join(DATA, 'ModsSource'), { recursive: true });
 
   for (const [target, sub] of targets)
     await compile(id, version, src, opts, target, sub, path.join(DATA, 'Engine', 'Mods', sub, lib));

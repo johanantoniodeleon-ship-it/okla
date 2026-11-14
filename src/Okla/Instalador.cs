@@ -154,6 +154,7 @@ namespace Okla
             var node = Path.Combine(WindhawkDir, "UI", "VSCodium.exe");
             var script = Path.Combine(AppDir, "tools", "wh-install.js");
             if (!File.Exists(node) || !File.Exists(script)) throw new InvalidOperationException("falta Windhawk o el instalador de mods");
+            var fallidos = new List<string>();
             for (int i = 0; i < mods.Count; i++)
             {
                 p($"Compilando {mods[i]} ({i + 1} de {mods.Count})", (double)i / mods.Count);
@@ -162,10 +163,13 @@ namespace Okla
                 psi.Environment["ELECTRON_RUN_AS_NODE"] = "1";
                 using var pr = Process.Start(psi)!;
                 var err = pr.StandardError.ReadToEndAsync();
-                await pr.StandardOutput.ReadToEndAsync(ct);
+                var salida = await pr.StandardOutput.ReadToEndAsync(ct);
                 await pr.WaitForExitAsync(ct);
-                if (pr.ExitCode != 0) Log.Error($"Mod {mods[i]}: {(await err).Trim()}");
+                if (pr.ExitCode != 0) { fallidos.Add(mods[i]); Log.Error($"Mod {mods[i]}: {(salida + (await err)).Trim()}"); }
             }
+            // Si falla alguno, el paso sale con ✕ (Reintentar solo vuelve a probar los que faltan).
+            if (fallidos.Count > 0)
+                throw new InvalidOperationException($"{fallidos.Count} de {mods.Count} mods sin instalar (detalles en el log)");
         }
 
         private static async Task PasoFondos(Action<string, double> p, CancellationToken ct)
@@ -267,10 +271,36 @@ namespace Okla
             try { Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri(Path.Combine(AppContext.BaseDirectory, "okla.ico"))); } catch { }
 
             Estilo(_boton);
-            _pasos = ConstruirPasos();
-            var personalizar = ConstruirPersonalizar();
+            _pasos = Desplazable(ConstruirPasos());
+            var personalizar = Desplazable(ConstruirPersonalizar());
             Content = ConstruirBienvenida(() => Content = personalizar);
             Closing += (_, _) => _cts.Cancel();
+            // Que no cuelgue fuera de pantallas pequeñas (1366x768, escalado 150 %).
+            MaxHeight = SystemParameters.WorkArea.Height - 24;
+            // Al abrirse desde el setup puede quedar detrás del Explorador: se trae al frente una vez.
+            Loaded += (_, _) => { Topmost = true; Activate(); Topmost = false; Encajar(); };
+            SizeChanged += (_, _) => Encajar();
+        }
+
+        /// <summary>Si la ventana crece (pasar de la bienvenida a los modos), que no se salga por abajo de la pantalla.</summary>
+        private void Encajar()
+        {
+            var a = SystemParameters.WorkArea;
+            if (Top + ActualHeight > a.Bottom - 8) Top = Math.Max(a.Top + 8, a.Bottom - ActualHeight - 8);
+        }
+
+        /// <summary>El contenido se desplaza y la última fila (los botones) queda siempre visible abajo.</summary>
+        private static UIElement Desplazable(UIElement contenido)
+        {
+            if (contenido is not StackPanel sp || sp.Children.Count == 0) return contenido;
+            var ultimo = sp.Children[sp.Children.Count - 1];
+            sp.Children.Remove(ultimo);
+            if (ultimo is FrameworkElement fe) fe.Margin = new Thickness(28, 10, 28, 20);
+            var dock = new DockPanel { LastChildFill = true };
+            DockPanel.SetDock(ultimo, Dock.Bottom); dock.Children.Add(ultimo);
+            sp.Margin = new Thickness(28, 28, 28, 0);
+            dock.Children.Add(new ScrollViewer { Content = sp, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+            return dock;
         }
 
         // ---------------- 0) bienvenida: qué es okla y cómo se usa ----------------
@@ -503,7 +533,7 @@ namespace Okla
             try { await CorrerPasos(); } finally { rotar.Stop(); }
             _tip.FontStyle = FontStyles.Normal;
             _tip.Foreground = Terminado ? Ok : Mal;
-            _tip.Text = Terminado ? "🏆 Logro desbloqueado: Windows a tu manera. Prueba Ctrl+Alt+1…4."
+            _tip.Text = Terminado ? "★ Logro desbloqueado: Windows a tu manera. Prueba Ctrl+Alt+1…4."
                                   : "Algo falló (marcado con ✕). Reintentar vuelve a probar; lo ya hecho se salta.";
         }
 
@@ -526,6 +556,7 @@ namespace Okla
                     Log.Info("Instalación: " + paso.Nombre);
                     await Task.Run(() => paso.Hacer(P, _cts.Token));
                     marca.Text = "✓"; marca.Foreground = Ok;
+                    if (det.Text.EndsWith("…")) det.Text = "Hecho";
                 }
                 catch (OperationCanceledException) { return; }
                 catch (Exception ex)

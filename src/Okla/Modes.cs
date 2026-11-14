@@ -40,6 +40,18 @@ namespace Okla
             return JsonSerializer.Serialize(d);
         }
 
+        /// <summary>Estilo de la barra. <paramref name="sinEsquina"/>: oculta la esquina derecha entera (wifi, volumen, batería,
+        /// reloj, notificaciones), como Pop!_OS; en Fedora todo eso ya está en la barra de arriba. Los demás modos limpian la regla.</summary>
+        private static string Barra(string theme, bool sinEsquina = false) => JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["activo"] = "1", ["theme"] = theme,
+            ["controlStyles[0].target"] = sinEsquina ? "SystemTray.SystemTrayFrame" : "",
+            ["controlStyles[0].styles[0]"] = sinEsquina ? "Visibility=Collapsed" : "",
+        });
+
+        /// <summary>Doble clic en el escritorio vacío oculta o muestra los iconos (todos los modos); sin ocultarlos solos por inactividad.</summary>
+        private static string DobleClic() => JsonSerializer.Serialize(new Dictionary<string, string> { ["activo"] = "1", ["enableAutoHide"] = "0" });
+
         /// <summary>Windhawk por modo. Gaming apaga todo lo visual; el resto usa Mica (ligero) en vez de acrílico.</summary>
         private static Dictionary<string, string> WhProfile(string key) => key switch
         {
@@ -57,7 +69,7 @@ namespace Okla
             {
                 ["wh:translucent-windows"] = Wh("1", efecto: "mica"),
                 ["wh:taskbar-dock-animation"] = Wh("1"),
-                ["wh:windows-11-taskbar-styler"] = Wh("1", "DockLike"),
+                ["wh:windows-11-taskbar-styler"] = Barra("DockLike", sinEsquina: true),
                 ["wh:windows-11-start-menu-styler"] = Wh("1", "SideBySideMinimal"),
                 ["wh:windows-11-file-explorer-styler"] = Wh("1", "MicaBar"),
                 ["wh:windows-11-notification-center-styler"] = Wh("1", "Unified"),
@@ -67,7 +79,7 @@ namespace Okla
                 ["wh:translucent-windows"] = Wh("1", efecto: "mica"),
                 // Barra totalmente transparente sobre el video; sin el zoom del dock (descuadraba los iconos con este tema).
                 ["wh:taskbar-dock-animation"] = Wh("0"),
-                ["wh:windows-11-taskbar-styler"] = Wh("1", "SimplyTransparent"),
+                ["wh:windows-11-taskbar-styler"] = Barra("SimplyTransparent"),
                 ["wh:windows-11-start-menu-styler"] = Wh("1", "LiquidGlass"),
                 ["wh:windows-11-file-explorer-styler"] = Wh("1", "LiquidGlass"),
                 ["wh:windows-11-notification-center-styler"] = Wh("1", "LiquidGlass"),
@@ -76,7 +88,7 @@ namespace Okla
             {
                 ["wh:translucent-windows"] = Wh("1", efecto: "mica"),
                 ["wh:taskbar-dock-animation"] = Wh("0"),
-                ["wh:windows-11-taskbar-styler"] = Wh("1", "Pills"),
+                ["wh:windows-11-taskbar-styler"] = Barra("Pills"),
                 ["wh:windows-11-start-menu-styler"] = Wh("1", "Borderless"),
                 ["wh:windows-11-file-explorer-styler"] = Wh("1", "Float"),
                 ["wh:windows-11-notification-center-styler"] = Wh("1", "Borderless"),
@@ -93,9 +105,11 @@ namespace Okla
             ["J"] = new[] { "smart-process-priority-ram-optimizer", "ignore-focus-loss", "taskbar-auto-hide-keyboard-only" },
             ["A"] = new[] { "windhawk-topbar", "taskbar-icon-size", "custom-corner-radius", "taskbar-clock-customization", "slick-window-arrangement" },
             ["G"] = new[] { "live-video-wallpaper", "dynamic-island-for-windows", "macos-minimize-animation", "taskbar-system-info", "taskbar-fluent-media-player" },
-            ["P"] = new[] { "taskbar-fade", "shake-to-find-cursor", "taskbar-tray-system-icon-tweaks", "zen-desktop-toggle-icons", "monitor-rounded-edges" },
+            ["P"] = new[] { "taskbar-fade", "shake-to-find-cursor", "taskbar-tray-system-icon-tweaks", "monitor-rounded-edges" },
             ["B"] = Array.Empty<string>(),   // Batería: ningún mod
         };
+        /// <summary>Mods encendidos en todos los modos.</summary>
+        private static readonly string[] Comunes = { "zen-desktop-toggle-icons" };
 
         private static string R(string rel) => Path.Combine(Paths.Recursos, rel);
 
@@ -142,12 +156,13 @@ namespace Okla
         public static List<ModeDef> Defaults()
         {
             var list = BaseDefaults();
-            var all = ExtraMods.Values.SelectMany(x => x).ToList();
+            var all = ExtraMods.Values.SelectMany(x => x).Concat(Comunes).ToList();
             foreach (var m in list)
             {
                 foreach (var (k, v) in WhProfile(m.Key)) m.Ajustes![k] = v;
                 var mine = ExtraMods[m.Key];
                 foreach (var mod in all) m.Ajustes![$"wh:{mod}"] = Wh(mine.Contains(mod) ? "1" : "0");
+                m.Ajustes!["wh:zen-desktop-toggle-icons"] = DobleClic();
             }
             var g = list.First(x => x.Key == "G").Ajustes!;
             // Videos ya convertidos a 1440p/30 fps (la Intel que dibuja el escritorio va sobrada así).
@@ -203,6 +218,27 @@ namespace Okla
                                       ["iconos"] = "1", ["autoocultar"] = "0", ["brillo"] = "40" } },
         };
 
+        /// <summary>
+        /// Migración de un ajuste de Windhawk: si al JSON guardado le falta la PRIMERA clave nueva, se le copian
+        /// las claves indicadas desde el de fábrica (una sola vez; luego el usuario puede cambiarlas en el editor).
+        /// </summary>
+        private static bool Fusionar(Dictionary<string, string> ajustes, Dictionary<string, string> def, string id, params string[] claves)
+        {
+            if (!def.TryGetValue(id, out var dv) || !ajustes.TryGetValue(id, out var uv)) return false;
+            try
+            {
+                var u = JsonSerializer.Deserialize<Dictionary<string, string>>(uv) ?? new();
+                if (u.ContainsKey(claves[0])) return false;
+                var d = JsonSerializer.Deserialize<Dictionary<string, string>>(dv) ?? new();
+                // Con el mod apagado en ese modo no hace falta nada (salvo que la migración sea encenderlo).
+                if (u.GetValueOrDefault("activo") == "0" && !claves.Contains("activo")) return false;
+                foreach (var c in claves) if (d.TryGetValue(c, out var v)) u[c] = v;
+                ajustes[id] = JsonSerializer.Serialize(u);
+                return true;
+            }
+            catch { return false; }
+        }
+
         public static List<ModeDef> LoadModes()
         {
             try
@@ -227,6 +263,10 @@ namespace Okla
                             // v0.3: videos con temporizador de 60 (ver VideoSetting)
                             if (m.Ajustes.TryGetValue("wh:live-video-wallpaper", out var vid) && vid.Contains("\"targetFps\":\"30\""))
                             { m.Ajustes["wh:live-video-wallpaper"] = vid.Replace("\"targetFps\":\"30\"", "\"targetFps\":\"60\""); migrated = true; }
+                            // v0.4: doble clic para los iconos en todos los modos y Fedora sin la esquina derecha.
+                            // Solo se añaden las claves nuevas; el tema que haya elegido el usuario se respeta.
+                            if (Fusionar(m.Ajustes, def, "wh:windows-11-taskbar-styler", "controlStyles[0].target", "controlStyles[0].styles[0]")) migrated = true;
+                            if (Fusionar(m.Ajustes, def, "wh:zen-desktop-toggle-icons", "enableAutoHide", "activo")) migrated = true;
                         }
                         if (Elegidos(list) | Reparar(list)) migrated = true;
                         if (migrated) File.WriteAllText(Paths.ModesFile, JsonSerializer.Serialize(list, Json));
