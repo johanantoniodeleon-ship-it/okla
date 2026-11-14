@@ -233,6 +233,9 @@ namespace Okla
                 var datos = new WinForms.ToolStripMenuItem("Compartir datos técnicos anónimos") { Checked = Red.Compartir };
                 datos.Click += (_, _) => { Red.Compartir = !Red.Compartir; datos.Checked = Red.Compartir; };
                 menu.Items.Add(datos);
+                var opinion = new WinForms.ToolStripMenuItem("Enviar una opinión…");
+                opinion.Click += (_, _) => AbrirOpinion();
+                menu.Items.Add(opinion);
             }
             if (ModeStore.EstaActivo(_modes, "J"))
             {
@@ -552,6 +555,16 @@ namespace Okla
             });
         }
         private System.IO.FileSystemWatcher? _openWatch;
+
+        private OpinionWindow? _opinion;
+        private void AbrirOpinion()
+        {
+            if (_opinion is { IsLoaded: true }) { _opinion.Activate(); return; }
+            var m = ModeStore.Find(_modes, _state.ModoActual);
+            _opinion = new OpinionWindow(m?.Key, m?.Nombre);
+            _opinion.Closed += (_, _) => _opinion = null;
+            _opinion.Show(); _opinion.Activate();
+        }
 
         /// <summary>Catálogo de fondos en línea: a los 3 min de arrancar, cada 24 h y al activar un modo.</summary>
         private System.Windows.Threading.DispatcherTimer? _catTimer;

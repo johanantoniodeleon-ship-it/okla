@@ -328,7 +328,7 @@ namespace Okla
         }
 
         /// <summary>Botón principal: turquesa de okla, esquinas redondeadas, letra oscura.</summary>
-        private static void Estilo(Button b)
+        internal static void Estilo(Button b, bool secundario = false)
         {
             var borde = new FrameworkElementFactory(typeof(Border));
             borde.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
@@ -339,7 +339,8 @@ namespace Okla
             cont.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
             borde.AppendChild(cont);
             b.Template = new ControlTemplate(typeof(Button)) { VisualTree = borde };
-            b.Background = Ok; b.Foreground = new SolidColorBrush(Color.FromRgb(0x10, 0x14, 0x18));
+            b.Background = secundario ? new SolidColorBrush(Color.FromRgb(0x2a, 0x2e, 0x38)) : Ok;
+            b.Foreground = secundario ? Fg : new SolidColorBrush(Color.FromRgb(0x10, 0x14, 0x18));
             b.FontWeight = FontWeights.SemiBold; b.FontSize = 13.5; b.Cursor = Cursors.Hand;
             b.MouseEnter += (_, _) => b.Opacity = 0.88; b.MouseLeave += (_, _) => b.Opacity = 1;
             b.IsEnabledChanged += (_, _) => b.Opacity = b.IsEnabled ? 1 : 0.5;
