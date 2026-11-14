@@ -29,8 +29,8 @@ namespace Okla
     internal static class Red
     {
         // Proyecto de Supabase. Vacío = okla no se conecta a nada.
-        public const string Url = "";
-        public const string Clave = "";   // clave pública (publishable/anon): solo sirve para añadir filas
+        public const string Url = "https://aygmooqjsxbhxgwdxvqk.supabase.co";
+        public const string Clave = "sb_publishable_eewcsp6AimkpsxhHYPpTAw_9TS5Nxsl";   // clave pública (publishable/anon): solo sirve para añadir filas
         public static bool Configurado => Url.Length > 0 && Clave.Length > 0;
 
         private static readonly string Archivo = Path.Combine(Paths.Config, "red.json");
