@@ -101,6 +101,7 @@ namespace Okla
             StartDisplayWatch();
             StartUpdates();
             StartRed();
+            StartCatalogo();
 
             // Arranca en el modo amigable (Fedora) o, si está desactivado, en el primero activo.
             var inicio = ModeStore.EstaActivo(_modes, "A") ? "A" : _modes.FirstOrDefault(m => m.Activo && m.Key != "B")?.Key;
@@ -153,6 +154,7 @@ namespace Okla
                 _modes = nuevos;
                 ModeStore.SaveModes(_modes);
                 RehacerMenu();   // nombres, y modos activados o desactivados
+                RevisarCatalogo();   // si se activó un modo, se bajan sus fondos
                 Log.Info("Editor: modos guardados" + (probar != null ? $", probando {probar}" : ""));
                 var cur = ModeStore.Find(_modes, _state.ModoActual);
                 if (probar != null) SwitchTo(probar);
@@ -219,6 +221,7 @@ namespace Okla
                     // Si se apaga el modo en uso, se pasa al primero que siga activo.
                     if (!mm.Activo && _state.ModoActual == mm.Key && _modes.FirstOrDefault(x => x.Activo && x.Key != "B") is { } otro) SwitchTo(otro.Key);
                     Application.Current.Dispatcher.BeginInvoke(RehacerMenu);
+                    if (mm.Activo) RevisarCatalogo();
                 };
                 activos.DropDownItems.Add(it);
             }
@@ -549,6 +552,34 @@ namespace Okla
             });
         }
         private System.IO.FileSystemWatcher? _openWatch;
+
+        /// <summary>Catálogo de fondos en línea: a los 3 min de arrancar, cada 24 h y al activar un modo.</summary>
+        private System.Windows.Threading.DispatcherTimer? _catTimer;
+        private void StartCatalogo()
+        {
+            _catTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMinutes(3) };
+            _catTimer.Tick += (_, _) => { _catTimer.Interval = TimeSpan.FromHours(24); RevisarCatalogo(); };
+            _catTimer.Start();
+        }
+
+        private void RevisarCatalogo()
+        {
+            var activos = _modes.Where(m => m.Activo).Select(m => m.Key).ToList();
+            bool Puede() => !_gameRunning && _obs?.Grabando != true && !EnBateria();
+            if (!Puede()) return;
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                var nuevos = await Catalogo.Revisar(activos, Puede);
+                if (nuevos.Count == 0) return;
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    var texto = string.Join(" · ", nuevos.Select(kv => $"{ModeStore.Find(_modes, kv.Key)?.Nombre ?? kv.Key}: {kv.Value}"));
+                    var total = nuevos.Values.Sum();
+                    Toast.Show(total == 1 ? "1 fondo nuevo" : $"{total} fondos nuevos", texto + " · Ctrl+Alt+H para verlos", "#88c0d0", Transition.Fundido, null);
+                    System.Threading.Tasks.Task.Run(() => Adaptador.Preparar(_modes));
+                });
+            });
+        }
 
         /// <summary>okla conectada: informe técnico anónimo al minuto de arrancar (si el usuario lo permite).</summary>
         private void StartRed()

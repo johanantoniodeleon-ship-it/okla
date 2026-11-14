@@ -92,7 +92,7 @@ namespace Okla
             new("Abrir okla al iniciar sesión", PasoTarea),
         };
 
-        private static async Task Descargar(string url, string destino, Action<string, double> p, string texto, CancellationToken ct)
+        internal static async Task Descargar(string url, string destino, Action<string, double> p, string texto, CancellationToken ct)
         {
             using var r = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             r.EnsureSuccessStatusCode();
