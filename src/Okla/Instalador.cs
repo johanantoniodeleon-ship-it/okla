@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace Okla
@@ -265,9 +266,94 @@ namespace Okla
             WindowStartupLocation = WindowStartupLocation.CenterScreen; Background = Bg;
             try { Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri(Path.Combine(AppContext.BaseDirectory, "okla.ico"))); } catch { }
 
+            Estilo(_boton);
             _pasos = ConstruirPasos();
-            Content = ConstruirPersonalizar();
+            var personalizar = ConstruirPersonalizar();
+            Content = ConstruirBienvenida(() => Content = personalizar);
             Closing += (_, _) => _cts.Cancel();
+        }
+
+        // ---------------- 0) bienvenida: qué es okla y cómo se usa ----------------
+        private UIElement ConstruirBienvenida(Action seguir)
+        {
+            var sp = new StackPanel { Margin = new Thickness(28) };
+            var cab = new DockPanel { Margin = new Thickness(0, 0, 0, 14) };
+            if (IconosModos.Grande("okla") is { } ojo)
+            {
+                var img = new Image { Source = ojo, Width = 76, Height = 76, Margin = new Thickness(0, 0, 16, 0) };
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+                DockPanel.SetDock(img, Dock.Left); cab.Children.Add(img);
+            }
+            var titulos = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            var titulo = new TextBlock { Text = "okla", FontSize = 34, FontWeight = FontWeights.SemiBold, Foreground = Fg };
+            titulos.Children.Add(titulo);
+            titulos.Children.Add(new TextBlock { Text = "Tu Windows, con un modo para cada momento.", FontSize = 14, Foreground = Fg, Opacity = 0.85 });
+            titulos.Children.Add(new TextBlock { Text = "\"Es peligroso ir solo. Toma esto.\"", FontSize = 12, FontStyle = FontStyles.Italic, Foreground = Dim, Margin = new Thickness(0, 4, 0, 0) });
+            cab.Children.Add(titulos);
+            sp.Children.Add(cab);
+
+            sp.Children.Add(new TextBlock { Text = "Cómo funciona", FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = Dim, Margin = new Thickness(0, 4, 0, 8) });
+            foreach (var (tecla, texto) in new[]
+            {
+                ("Ctrl+Alt+1…4", "Cambia de modo: fondo animado, tema, barra de tareas, iconos y escritorio, todo de golpe. Una pantalla de carga tapa el cambio, como entre niveles."),
+                ("Solo", "Gaming entra al abrir un juego y Presentación al grabar con OBS. okla mide tu equipo y ajusta la calidad, como un juego que detecta tu gráfica."),
+                ("Ctrl+Alt+0", "Pánico: Windows vuelve a como estaba. Tu punto de guardado. Don't panic."),
+                ("Ctrl+Alt+E", "Editor para cambiar cada modo a tu gusto. Ctrl+Alt+H abre el mini hub de fondos."),
+            })
+                sp.Children.Add(Consejo(tecla, texto));
+
+            var secreto = new TextBlock { Foreground = Ok, FontSize = 12, Margin = new Thickness(0, 6, 0, 0), Visibility = Visibility.Collapsed,
+                                          Text = "↑↑↓↓←→←→BA · +30 vidas. No hacen nada, pero se sienten bien." };
+            sp.Children.Add(secreto);
+
+            var pie = new DockPanel { Margin = new Thickness(0, 18, 0, 0) };
+            var empezar = new Button { Content = "Empezar", Padding = new Thickness(26, 8, 26, 8), IsDefault = true };
+            Estilo(empezar);
+            empezar.Click += (_, _) => seguir();
+            DockPanel.SetDock(empezar, Dock.Right); pie.Children.Add(empezar);
+            pie.Children.Add(new TextBlock { Text = "Hecho con Windhawk, ffmpeg y fondos de motionbgs (de sus autores). Código abierto, licencia MIT.",
+                                             Foreground = Dim, FontSize = 11, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) });
+            sp.Children.Add(pie);
+
+            // Código Konami: guiño escondido.
+            var konami = new[] { Key.Up, Key.Up, Key.Down, Key.Down, Key.Left, Key.Right, Key.Left, Key.Right, Key.B, Key.A };
+            int pos = 0;
+            PreviewKeyDown += (_, e) =>
+            {
+                if (secreto.Visibility == Visibility.Visible) return;
+                pos = e.Key == konami[pos] ? pos + 1 : (e.Key == konami[0] ? 1 : 0);
+                if (pos == konami.Length) { secreto.Visibility = Visibility.Visible; titulo.Text = "okla ★"; Log.Info("Código Konami en el instalador"); }
+            };
+            return sp;
+        }
+
+        /// <summary>Botón principal: turquesa de okla, esquinas redondeadas, letra oscura.</summary>
+        private static void Estilo(Button b)
+        {
+            var borde = new FrameworkElementFactory(typeof(Border));
+            borde.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
+            borde.SetValue(Border.BackgroundProperty, new System.Windows.TemplateBindingExtension(Control.BackgroundProperty));
+            borde.SetValue(Border.PaddingProperty, new System.Windows.TemplateBindingExtension(Control.PaddingProperty));
+            var cont = new FrameworkElementFactory(typeof(ContentPresenter));
+            cont.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            cont.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            borde.AppendChild(cont);
+            b.Template = new ControlTemplate(typeof(Button)) { VisualTree = borde };
+            b.Background = Ok; b.Foreground = new SolidColorBrush(Color.FromRgb(0x10, 0x14, 0x18));
+            b.FontWeight = FontWeights.SemiBold; b.FontSize = 13.5; b.Cursor = Cursors.Hand;
+            b.MouseEnter += (_, _) => b.Opacity = 0.88; b.MouseLeave += (_, _) => b.Opacity = 1;
+            b.IsEnabledChanged += (_, _) => b.Opacity = b.IsEnabled ? 1 : 0.5;
+        }
+
+        private static UIElement Consejo(string tecla, string texto)
+        {
+            var fila = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
+            var chip = new Border { Child = new TextBlock { Text = tecla, Foreground = Fg, FontSize = 12, FontFamily = new FontFamily("Cascadia Mono, Consolas") },
+                                    Padding = new Thickness(8, 3, 8, 3), CornerRadius = new CornerRadius(6), Width = 118, VerticalAlignment = VerticalAlignment.Top,
+                                    Background = new SolidColorBrush(Color.FromRgb(0x2a, 0x2e, 0x38)), Margin = new Thickness(0, 0, 12, 0) };
+            DockPanel.SetDock(chip, Dock.Left); fila.Children.Add(chip);
+            fila.Children.Add(new TextBlock { Text = texto, Foreground = Fg, Opacity = 0.85, FontSize = 12.5, TextWrapping = TextWrapping.Wrap });
+            return fila;
         }
 
         // ---------------- 1) personalizar: qué modos quiere el usuario ----------------
@@ -315,6 +401,7 @@ namespace Okla
             }
 
             var sig = new Button { Content = "Siguiente", Padding = new Thickness(22, 8, 22, 8), Margin = new Thickness(0, 18, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
+            Estilo(sig);
             sig.Click += (_, _) =>
             {
                 if (compartir != null) { Red.Estado.Avisado = true; Red.Compartir = compartir.IsChecked == true; }
@@ -384,14 +471,43 @@ namespace Okla
                 _filas.Add((paso, marca, det));
             }
             sp.Children.Add(_barra);
+            sp.Children.Add(_tip);
             sp.Children.Add(_boton);
             _boton.Click += async (_, _) => { if (Terminado) { DialogResult = true; return; } await Correr(); };
             return sp;
         }
 
+        private readonly TextBlock _tip = new() { FontSize = 12, FontStyle = FontStyles.Italic, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0), MinHeight = 32,
+                                                   Foreground = new SolidColorBrush(Color.FromRgb(0x8a, 0x8f, 0x9a)) };
+        private static readonly string[] Consejos =
+        {
+            "Cargando texturas… es broma, son fondos animados.",
+            "Pánico (Ctrl+Alt+0) es tu \"volver al último punto de guardado\".",
+            "Gaming congela las apps pesadas mientras juegas, como pausar el mundo al abrir el inventario.",
+            "Si un modo no te sirve, desactívalo. No hace falta completar el 100 %.",
+            "Las pantallas de carga no esconden nada raro: solo a Windows cambiándose de ropa.",
+            "Con batería, okla te pregunta antes de bajar todo al mínimo. Nada de sorpresas.",
+            "okla mide tu equipo y elige la calidad sola. Sin tocar ajustes gráficos.",
+            "No apagues el equipo mientras ves este icono… bueno, no hay icono, pero ya sabes.",
+        };
+
         private async Task Correr()
         {
             _boton.IsEnabled = false; _boton.Content = "Instalando…";
+            int n = new Random().Next(Consejos.Length);
+            _tip.Text = Consejos[n];
+            var rotar = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(7) };
+            rotar.Tick += (_, _) => _tip.Text = Consejos[++n % Consejos.Length];
+            rotar.Start();
+            try { await CorrerPasos(); } finally { rotar.Stop(); }
+            _tip.FontStyle = FontStyles.Normal;
+            _tip.Foreground = Terminado ? Ok : Mal;
+            _tip.Text = Terminado ? "🏆 Logro desbloqueado: Windows a tu manera. Prueba Ctrl+Alt+1…4."
+                                  : "Algo falló (marcado con ✕). Reintentar vuelve a probar; lo ya hecho se salta.";
+        }
+
+        private async Task CorrerPasos()
+        {
             int errores = 0;
             for (int i = 0; i < _filas.Count; i++)
             {
