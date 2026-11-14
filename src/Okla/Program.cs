@@ -158,7 +158,13 @@ namespace Okla
                 Log.Info("Editor: modos guardados" + (probar != null ? $", probando {probar}" : ""));
                 var cur = ModeStore.Find(_modes, _state.ModoActual);
                 if (probar != null) SwitchTo(probar);
-                else if (cur != null) { SetTrayIcon(cur.Color, cur.Nombre); ApplyAsync(cur.Ajustes ?? new(), cur.Nombre + " (editor)"); }
+                else if (cur != null)
+                {
+                    SetTrayIcon(cur.Color, cur.Nombre); ApplyAsync(cur.Ajustes ?? new(), cur.Nombre + " (editor)");
+                    Widgets.Poner(cur.Ajustes?.GetValueOrDefault("widgets") ?? Widgets.PorDefecto(cur.Key), cur.Color);
+                    var tema = cur.Ajustes?.GetValueOrDefault("iconos-sistema") ?? IconosSistema.PorDefecto(cur.Key);
+                    System.Threading.Tasks.Task.Run(() => IconosSistema.Aplicar(tema));
+                }
             });
             _editor.Closed += (_, _) => _editor = null;
             _editor.Show();
@@ -463,6 +469,9 @@ namespace Okla
             _pillTimer.Tick += (_, _) => { _pillTimer.Stop(); if (_state.ModoActual == key) _mini?.ShowPill(); };
             _pillTimer.Start();
             var ls = LoadingScreen.Show(key, m.Nombre, m.Color, Poster(m));
+            Widgets.Poner(m.Ajustes?.GetValueOrDefault("widgets") ?? Widgets.PorDefecto(key), m.Color);
+            var temaIconos = m.Ajustes?.GetValueOrDefault("iconos-sistema") ?? IconosSistema.PorDefecto(key);
+            _ = ls.Covered.ContinueWith(_ => IconosSistema.Aplicar(temaIconos));   // detrás de la pantalla de carga
             Toast.PlaySound(key);
             return ApplyAsync(m.Ajustes ?? new(), m.Nombre, ls);
         }
@@ -478,6 +487,8 @@ namespace Okla
             System.Threading.Tasks.Task.Run(AppPause.Reanudar);
             _pillTimer?.Stop();
             _mini?.ClosePill();
+            Widgets.Quitar();
+            System.Threading.Tasks.Task.Run(() => IconosSistema.Aplicar("0"));
             var ls = LoadingScreen.Show("panico", "Windows restaurado", "#e06c75", null);
             Toast.PlaySound("panico");
             ApplyAsync(null, "pánico", ls);

@@ -286,6 +286,8 @@ namespace Okla
                 Fila("Plan de energía", Opciones(new[] { ("alto", "Alto rendimiento"), ("equilibrado", "Equilibrado"), ("", "Como Windows") }, A.GetValueOrDefault("energia", ""), v => Poner("energia", v))),
                 Fila("Ocultar la barra de tareas", SiNo("autoocultar"))));
             sp.Children.Add(Tarjeta("Escritorio", "Cada modo tiene su carpeta de escritorio en okla\\escritorios.",
+                Fila("Widget", Opciones(new[] { ("reloj", "Reloj al centro"), ("stats", "Reloj y estadísticas"), ("0", "Ninguno") }, A.GetValueOrDefault("widgets", Widgets.PorDefecto(M.Key)), v => Poner("widgets", v))),
+                Fila("Iconos del sistema", Opciones(new[] { ("fedora", "Papirus"), ("gaming", "Candy (neón)"), ("potencia", "WhiteSur"), ("0", "Windows") }, A.GetValueOrDefault("iconos-sistema", IconosSistema.PorDefecto(M.Key)), v => Poner("iconos-sistema", v))),
                 Fila("Iconos del escritorio", SiNo("iconos", "Visibles", "Ocultos")),
                 Fila("Tamaño de los iconos", Opciones(new[] { ("32", "Pequeños"), ("48", "Medianos"), ("64", "Grandes"), ("96", "Enormes") }, A.GetValueOrDefault("tamano-iconos", ""), v => Poner("tamano-iconos", v))),
                 Fila("Carpeta del escritorio", new TextBlock { Text = A.GetValueOrDefault("escritorio", "(la de Windows)"), FontSize = 12, Foreground = B(Dim), TextWrapping = TextWrapping.Wrap })));

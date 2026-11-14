@@ -346,7 +346,7 @@ namespace Okla
             if (_tickN++ % 3 == 0) _ = SlowStatsAsync();   // GPU y temperatura cada 6 s
         }
 
-        private static string? Spotify()
+        internal static string? Spotify()
         {
             foreach (var p in Process.GetProcessesByName("Spotify"))
                 using (p)
