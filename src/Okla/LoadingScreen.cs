@@ -161,6 +161,26 @@ namespace Okla
             new() { Text = s, FontSize = size, Foreground = fg, FontFamily = F(font), FontWeight = w,
                     HorizontalAlignment = HorizontalAlignment.Center, TextAlignment = TextAlignment.Center };
 
+        /// <summary>Icono del modo (null si falta: la pantalla queda como antes).</summary>
+        private static Image? Icono(string clave, double tam, Thickness margen, double opacidad = 1)
+        {
+            if (IconosModos.Grande(clave) is not { } src) return null;
+            var img = new Image { Source = src, Width = tam, Height = tam, Margin = margen, Opacity = opacidad, HorizontalAlignment = HorizontalAlignment.Center };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+            return img;
+        }
+
+        /// <summary>Firma pequeña de okla abajo a la derecha.</summary>
+        private static void Firma(Grid root, Brush texto)
+        {
+            var fila = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom,
+                                        Margin = new Thickness(0, 0, 40, 34), Opacity = 0.7 };
+            if (Icono("okla", 26, new Thickness(0, 0, 8, 0)) is { } i) fila.Children.Add(i);
+            var t = new TextBlock { Text = "okla", FontSize = 14, Foreground = texto, VerticalAlignment = VerticalAlignment.Center, FontFamily = F("Segoe UI Variable Display"), FontWeight = FontWeights.SemiBold };
+            fila.Children.Add(t);
+            root.Children.Add(fila);
+        }
+
         private static string Spaced(string s) => string.Join("  ", s.ToCharArray());
 
         // ---------- J · Gaming: negro, técnico, corte seco ----------
@@ -180,6 +200,7 @@ namespace Okla
             }
 
             var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            if (Icono("J", 96, new Thickness(0, 0, 0, 22)) is { } ij) stack.Children.Add(ij);
             stack.Children.Add(Text(Spaced("OKLA // MODO J"), 13, dim, "Bahnschrift", FontWeights.Normal));
             stack.Children.Add(Text(Spaced("GAMING"), 84, fg, "Bahnschrift SemiBold", FontWeights.SemiBold));
 
@@ -198,6 +219,7 @@ namespace Okla
             var info = Text("ALTO RENDIMIENTO · MEMORIA LIBRE · SIN NOTIFICACIONES", 11, dim, "Bahnschrift", FontWeights.Normal);
             info.VerticalAlignment = VerticalAlignment.Bottom; info.Margin = new Thickness(0, 0, 0, 64);
             root.Children.Add(info);
+            Firma(root, dim);
             return (stack, new Style(TimeSpan.Zero, TimeSpan.FromMilliseconds(140), TimeSpan.FromMilliseconds(2000), false));
         }
 
@@ -211,16 +233,17 @@ namespace Okla
             var frost = B("#88c0d0"); var snow = B("#eceff4");
             var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
 
-            var ring = new Grid { Width = 72, Height = 72, Margin = new Thickness(0, 0, 0, 26) };
+            var ring = new Grid { Width = 132, Height = 132, Margin = new Thickness(0, 0, 0, 26) };
             ring.Children.Add(new Ellipse { Stroke = B("#eceff4", 0x26), StrokeThickness = 5 });
             var rot = new RotateTransform();
             var arc = new System.Windows.Shapes.Path
             {
                 Stroke = frost, StrokeThickness = 5, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round,
-                Data = Geometry.Parse("M 36,2.5 A 33.5,33.5 0 0 1 69.5,36"),
+                Data = Geometry.Parse("M 66,2.5 A 63.5,63.5 0 0 1 129.5,66"),
                 RenderTransformOrigin = new Point(0.5, 0.5), RenderTransform = rot
             };
             ring.Children.Add(arc);
+            if (Icono("A", 84, new Thickness(0)) is { } ia) { ia.VerticalAlignment = VerticalAlignment.Center; ring.Children.Add(ia); }
             Forever(rot, RotateTransform.AngleProperty, 0, 360, 900);
             stack.Children.Add(ring);
 
@@ -229,6 +252,7 @@ namespace Okla
             _status.Foreground = B("#d8dee9"); _status.Margin = new Thickness(0, 18, 0, 0); _status.FontFamily = F("Segoe UI Variable Text");
             stack.Children.Add(_status);
             root.Children.Add(stack);
+            Firma(root, snow);
             return (stack, new Style(TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(420), TimeSpan.FromMilliseconds(3500), false));
         }
 
@@ -255,6 +279,7 @@ namespace Okla
             var comp = Color.FromRgb(0xff, 0x7c, 0xd8); // complementario cálido del azul-violeta
             var grad = new LinearGradientBrush(a, comp, 0);
             var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            if (Icono("G", 110, new Thickness(0, 0, 0, 14)) is { } ig) { ig.Effect = new DropShadowEffect { Color = a, BlurRadius = 36, ShadowDepth = 0, Opacity = 0.6 }; stack.Children.Add(ig); }
             stack.Children.Add(Text(Spaced("MODO"), 14, B("#ffffff", 0x99), "Segoe UI Variable Display", FontWeights.SemiBold));
             var title = Text("POTENCIA", 132, grad, "Segoe UI Variable Display", FontWeights.Black);
             title.Effect = new DropShadowEffect { Color = a, BlurRadius = 40, ShadowDepth = 0, Opacity = 0.55 };
@@ -270,6 +295,7 @@ namespace Okla
             _status.Foreground = B("#ffffff", 0xAA); _status.FontFamily = F("Segoe UI Variable Text");
             stack.Children.Add(_status);
             root.Children.Add(stack);
+            Firma(root, B("#ffffff"));
             return (stack, new Style(TimeSpan.FromMilliseconds(140), TimeSpan.FromMilliseconds(340), TimeSpan.FromMilliseconds(3200), true));
         }
 
@@ -278,6 +304,7 @@ namespace Okla
         {
             root.Background = B("#2d353b");
             var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            if (Icono("P", 96, new Thickness(0, 0, 0, 26)) is { } ip) stack.Children.Add(ip);
             var dots = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 30) };
             var cols = new[] { "#a7c080", "#e69875", "#7fbbb3" };
             for (int i = 0; i < 3; i++)
@@ -296,6 +323,7 @@ namespace Okla
             _status.Foreground = B("#859289"); _status.Margin = new Thickness(0, 18, 0, 0); _status.FontFamily = F("Segoe UI Variable Text");
             stack.Children.Add(_status);
             root.Children.Add(stack);
+            Firma(root, B("#d3c6aa"));
             return (stack, new Style(TimeSpan.FromMilliseconds(380), TimeSpan.FromMilliseconds(650), TimeSpan.FromMilliseconds(3200), false));
         }
 
@@ -305,6 +333,7 @@ namespace Okla
         {
             root.Background = B("#000000");
             var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            if (Icono("B", 72, new Thickness(0, 0, 0, 18), 0.8) is { } ib) stack.Children.Add(ib);
             stack.Children.Add(Text("BATERÍA", 44, B("#a3be8c"), "Segoe UI Variable Display", FontWeights.Light));
             stack.Children.Add(Text("Todo al mínimo para que dure más", 15, B("#7c8a70"), "Segoe UI Variable Text", FontWeights.Normal));
             _status.Foreground = B("#5d6658"); _status.Margin = new Thickness(0, 16, 0, 0);
@@ -317,6 +346,7 @@ namespace Okla
         {
             root.Background = B("#1b1b1f");
             var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            if (Icono("panico", 64, new Thickness(0, 0, 0, 20), 0.85) is { } ix) stack.Children.Add(ix);
             stack.Children.Add(Text(nombre, 40, B("#eeeeee"), "Segoe UI Variable Display", FontWeights.Light));
             stack.Children.Add(Text("Volviendo a Windows normal", 15, B("#e06c75"), "Segoe UI Variable Text", FontWeights.Normal));
             _status.Foreground = B("#888888"); _status.Margin = new Thickness(0, 16, 0, 0);

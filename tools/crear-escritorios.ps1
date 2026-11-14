@@ -33,6 +33,9 @@ $tipos = [ordered]@{
   oficina   = '^(Word|Excel|PowerPoint|LibreOffice.*|Visual Studio Code)$'
   extras    = '^(Windhawk)$'
 }
+# Edge viene con Windows: solo se usa si no hay otro navegador.
+$otros = @($accesos.Keys | Where-Object { $_ -match $tipos.navegador -and $_ -ne "Microsoft Edge" })
+if ($otros.Count -gt 0) { $accesos.Remove("Microsoft Edge") }
 function DeTipo([string[]]$t) {
   $r = @(); foreach ($k in $t) { $p = $tipos[$k]; $r += @($accesos.Keys | Where-Object { $_ -match $p }) }
   return @($r | Select-Object -Unique)

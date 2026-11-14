@@ -43,6 +43,31 @@ namespace Okla
             }
         }
 
+        /// <summary>A tamaño completo (256 px), para la pantalla de carga en pantallas 4K. "okla" = el icono de okla.</summary>
+        public static BitmapImage? Grande(string clave)
+        {
+            var f = clave == "okla" ? Paths.Recurso(Path.Combine("icono", "okla.png")) : Ruta(clave);
+            lock (_wpf)
+            {
+                if (_wpf.TryGetValue("grande:" + clave, out var i)) return i;
+                try
+                {
+                    if (File.Exists(f))
+                    {
+                        i = new BitmapImage();
+                        i.BeginInit();
+                        i.CacheOption = BitmapCacheOption.OnLoad;
+                        i.DecodePixelWidth = 256;
+                        i.UriSource = new Uri(f);
+                        i.EndInit();
+                        i.Freeze();
+                    }
+                }
+                catch (Exception ex) { Log.Error($"Icono grande {clave}: {ex.Message}"); }
+                return _wpf["grande:" + clave] = i;
+            }
+        }
+
         /// <summary>Para ventanas WPF (editor, hub).</summary>
         public static BitmapImage? Wpf(string clave)
         {
