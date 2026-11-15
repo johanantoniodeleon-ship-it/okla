@@ -386,17 +386,26 @@ namespace Okla
         public override string Nombre => "Ocultar barra de tareas automáticamente";
         private static Native.APPBARDATA Data() => new()
         { cbSize = (uint)Marshal.SizeOf<Native.APPBARDATA>(), hWnd = Native.FindWindow("Shell_TrayWnd", null) };
+        // Se lee del registro (StuckRects3, byte 8: bit 1 = ocultar): preguntarle a la barra con SHAppBarMessage
+        // se queda esperando para siempre si la barra está colgada, y frenaba todo el cambio de modo.
         public override string Read()
         {
-            var d = Data();
-            return ((Native.SHAppBarMessage(ABM_GETSTATE, ref d).ToUInt64() & ABS_AUTOHIDE) != 0) ? "1" : "0";
+            try
+            {
+                using var k = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3");
+                if (k?.GetValue("Settings") is byte[] b && b.Length > 8) return (b[8] & 1) != 0 ? "1" : "0";
+            }
+            catch { }
+            return "0";
         }
         public override string Normalize(string v) => v.Trim().ToLowerInvariant() is "1" or "si" or "sí" or "true" ? "1" : "0";
         public override void Apply(string v)
         {
-            var d = Data();
-            d.lParam = (IntPtr)(Normalize(v) == "1" ? ABS_AUTOHIDE : ABS_ALWAYSONTOP);
-            Native.SHAppBarMessage(ABM_SETSTATE, ref d);
+            var estado = (IntPtr)(Normalize(v) == "1" ? ABS_AUTOHIDE : ABS_ALWAYSONTOP);
+            // En otro hilo y con tope de 3 s: si la barra no responde, no se bloquea el cambio de modo.
+            var t = new System.Threading.Thread(() => { var d = Data(); d.lParam = estado; Native.SHAppBarMessage(ABM_SETSTATE, ref d); }) { IsBackground = true };
+            t.Start();
+            if (!t.Join(3000)) throw new InvalidOperationException("la barra de tareas no responde");
         }
     }
 

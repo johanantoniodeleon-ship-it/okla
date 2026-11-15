@@ -109,10 +109,12 @@ namespace Okla
                 if (target == null) return false;
                 target = Adaptador.Adaptar(s.Id, target);   // fondos a la medida de la pantalla, si ya están listos
                 target = Regulador.Ajustar(s.Id, target);   // sin video / translucidez si el equipo no da para más
+                var total = System.Diagnostics.Stopwatch.StartNew();
                 try
                 {
                     var want = s.Normalize(target);
                     var now = s.Read();
+                    if (total.ElapsedMilliseconds > 1500) Log.Info($"  LENTO: leer {s.Id} tardó {total.ElapsedMilliseconds} ms");
                     if (s.Matches(target, now)) return false;
                     var t0 = System.Diagnostics.Stopwatch.StartNew();
                     progreso?.Invoke(s.Nombre);
@@ -144,9 +146,14 @@ namespace Okla
                     Log.Info($"  aviso a Windows ({tb.ElapsedMilliseconds} ms)");
                 });
             bool fondoCambio = false;
+            var pendientes = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
             foreach (var s in Settings.Where(s => !IsColor(s) && !IsVideo(s) && !IsDesktop(s)))
-                tasks.Add(System.Threading.Tasks.Task.Run(() => { if (Run(s) && s is WallpaperSetting) fondoCambio = true; }));
-            System.Threading.Tasks.Task.WaitAll(tasks.ToArray(), 15000);
+            {
+                pendientes[s.Id] = 0;
+                tasks.Add(System.Threading.Tasks.Task.Run(() => { try { if (Run(s) && s is WallpaperSetting) fondoCambio = true; } finally { pendientes.TryRemove(s.Id, out _); } }));
+            }
+            if (!System.Threading.Tasks.Task.WaitAll(tasks.ToArray(), 15000))
+                Log.Error("  sin terminar tras 15 s: " + string.Join(", ", pendientes.Keys));
 
             // Escritorio del modo: carpeta, luego tamaño de iconos (sobre la vista ya cambiada), luego mostrar/ocultar.
             foreach (var s in Settings.Where(IsDesktop))

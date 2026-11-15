@@ -521,6 +521,14 @@ namespace Okla
                             System.Threading.Thread.Sleep(2500);
                             ls?.Report("Revisando");
                             errores = _engine.Apply(perfil, ls == null ? null : ls.Report);
+                            // El estilo de la barra (taskbar-styler) se pierde si después cargan otros mods de la barra
+                            // (tamaño de iconos, animación del dock, reloj): rehacen la barra. Se vuelve a aplicar el último.
+                            if (perfil != null && perfil.TryGetValue("wh:windows-11-taskbar-styler", out var est) && est.Contains("\"activo\":\"1\""))
+                            {
+                                System.Threading.Thread.Sleep(1500);
+                                WindhawkModSetting.Rebump("windows-11-taskbar-styler");
+                                Log.Info("  estilo de la barra: aplicado otra vez al final");
+                            }
                         }
                     }
                     finally
@@ -528,6 +536,9 @@ namespace Okla
                         ls?.Finish(TimeSpan.FromMilliseconds(whChanged ? 1200 : 800));
                     }
                     Log.Info($"Aplicado {nombre} en {sw.ElapsedMilliseconds} ms");
+                    if (whChanged && BarraSalud.Revisar())
+                        Application.Current.Dispatcher.Invoke(() =>
+                            _tray?.ShowBalloonTip(5000, "okla", "La barra de tareas se había colgado; reinicié el Explorador.", WinForms.ToolTipIcon.Info));
                     if (errores.Count > 0)
                         Application.Current.Dispatcher.Invoke(() =>
                             _tray?.ShowBalloonTip(6000, $"okla · {nombre}", "No se pudo cambiar:\n" + string.Join("\n", errores), WinForms.ToolTipIcon.Warning));
