@@ -20,6 +20,15 @@ namespace Okla
 
             // Desarrollo: okla.exe --vista-widgets <tipo> <color> <fondo.jpg> <salida.png> dibuja los widgets sobre un fondo, sin tocar el escritorio.
             if (args.Length == 5 && args[0] == "--vista-widgets") { Widgets.Vista(args[1], args[2], args[3], args[4]); return; }
+            // Desarrollo: okla.exe --galeria abre solo la galería (lo que se baje queda en recursos, sin cambiar ningún modo).
+            if (args.Length >= 1 && args[0] == "--galeria")
+            {
+                var appG = new Application();
+                var g = new Galeria(ModeStore.LoadModes(), () => "A", (m, f, v, ya) => Log.Info($"(prueba) galería: {m.Key} {f} video={v} ya={ya}"));
+                if (args.Length >= 2) g.Loaded += (_, _) => g.Dispatcher.BeginInvoke(() => g.ProbarFuente(args[1]));
+                appG.Run(g);
+                return;
+            }
 
             var mutex = new Mutex(true, @"Local\okla-single-instance", out bool first);
             if (!first)
@@ -253,6 +262,9 @@ namespace Okla
                 hub.Click += (_, _) => { if (_state.ModoActual != "J") SwitchTo("J"); else ShowHub(); };
                 menu.Items.Add(hub);
             }
+            var galeria = new WinForms.ToolStripMenuItem("Explorar fondos en línea…");
+            galeria.Click += (_, _) => AbrirGaleria();
+            menu.Items.Add(galeria);
             var editor = new WinForms.ToolStripMenuItem("Editor de modos\tCtrl+Alt+E");
             editor.Click += (_, _) => OpenEditor();
             menu.Items.Add(editor);
@@ -581,6 +593,28 @@ namespace Okla
             });
         }
         private System.IO.FileSystemWatcher? _openWatch;
+
+        private Galeria? _galeria;
+        private void AbrirGaleria()
+        {
+            if (_galeria is { IsLoaded: true }) { _galeria.Activate(); return; }
+            _galeria = new Galeria(_modes, () => _state.ModoActual, PonerFondo);
+            _galeria.Closed += (_, _) => _galeria = null;
+            _galeria.Show(); _galeria.Activate();
+        }
+
+        /// <summary>Fondo bajado de la galería: se pone en el modo (como al elegirlo en el mini hub) y, si es el modo en uso, se aplica ya.</summary>
+        private void PonerFondo(ModeDef m, string archivo, bool video, bool ya)
+        {
+            if (!ya) return;   // queda en la carpeta del modo: aparece en el mini hub
+            m.Ajustes ??= new();
+            if (video) m.Ajustes["wh:live-video-wallpaper"] = ModeStore.VideoSetting(archivo);
+            else { m.Ajustes["wh:live-video-wallpaper"] = ModeStore.VideoOff(); m.Ajustes["fondo"] = "img:" + archivo; }
+            MiniHub.AplicarTema(m, archivo);
+            ModeStore.SaveModes(_modes);
+            if (m.Key == _state.ModoActual) ApplyAsync(m.Ajustes, m.Nombre + " (galería)");
+            Log.Info($"Galería: {m.Nombre} -> {System.IO.Path.GetFileName(archivo)}");
+        }
 
         private OpinionWindow? _opinion;
         private void AbrirOpinion()

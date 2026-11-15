@@ -410,7 +410,7 @@ namespace Okla
             ModeStore.Defaults().First(x => x.Key == key).Ajustes!.GetValueOrDefault("transparencia", "1") == "1";
 
         /// <summary>Pone en el modo el tema, acento y transparencias que tocan para este fondo.</summary>
-        private static void AplicarTema(ModeDef m, string fondo)
+        internal static void AplicarTema(ModeDef m, string fondo)
         {
             m.Ajustes ??= new();
             var img = ImagenDe(fondo);
