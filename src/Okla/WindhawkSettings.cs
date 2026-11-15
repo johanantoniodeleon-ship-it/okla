@@ -122,14 +122,21 @@ namespace Okla
                     catch (Exception) { continue; }
                     foreach (AutomationElement d in dlgs)
                     {
-                        if (!d.Current.Name.EndsWith("- Windhawk", StringComparison.Ordinal)) continue;
-                        var no = d.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "No"));
-                        if (no?.GetCurrentPattern(InvokePattern.Pattern) is InvokePattern ip)
+                        // Una ventana puede cerrarse mientras se mira (Explorer recargando): se salta y se sigue vigilando.
+                        try
                         {
-                            ip.Invoke();
-                            Log.Info($"  Windhawk pidió reiniciar Explorer ({d.Current.Name}); respondí No");
-                            if (!retried) { retried = true; Thread.Sleep(600); WindhawkModSetting.Rebump(mod); until = DateTime.UtcNow.AddSeconds(4); }
+                            var nombre = d.Current.Name;
+                            if (!nombre.EndsWith("- Windhawk", StringComparison.Ordinal)) continue;
+                            var no = d.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, "No"));
+                            if (no?.GetCurrentPattern(InvokePattern.Pattern) is InvokePattern ip)
+                            {
+                                ip.Invoke();
+                                Log.Info($"  Windhawk pidió reiniciar Explorer ({nombre}); respondí No");
+                                if (!retried) { retried = true; Thread.Sleep(600); WindhawkModSetting.Rebump(mod); until = DateTime.UtcNow.AddSeconds(4); }
+                            }
                         }
+                        catch (Exception ex) when (ex is ElementNotAvailableException or ElementNotEnabledException or InvalidOperationException
+                                                   or System.Runtime.InteropServices.COMException) { }
                     }
                 }
             }

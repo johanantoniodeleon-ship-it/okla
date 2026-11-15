@@ -18,6 +18,9 @@ namespace Okla
             // Velopack: atiende la instalación, desinstalación y actualizaciones antes que nada (sale solo si le toca).
             Velopack.VelopackApp.Build().Run();
 
+            // Desarrollo: okla.exe --vista-widgets <tipo> <color> <fondo.jpg> <salida.png> dibuja los widgets sobre un fondo, sin tocar el escritorio.
+            if (args.Length == 5 && args[0] == "--vista-widgets") { Widgets.Vista(args[1], args[2], args[3], args[4]); return; }
+
             var mutex = new Mutex(true, @"Local\okla-single-instance", out bool first);
             if (!first)
             {
@@ -101,6 +104,7 @@ namespace Okla
             StartDisplayWatch();
             StartUpdates();
             StartRed();
+            Clima.ABarra();   // la ciudad del clima también para la barra de Fedora
             StartCatalogo();
 
             // Arranca en el modo amigable (Fedora) o, si está desactivado, en el primero activo.

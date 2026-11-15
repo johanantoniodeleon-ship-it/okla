@@ -218,6 +218,27 @@ namespace Okla
             return tb;
         }
 
+        /// <summary>Ciudad del clima (común a todos los modos): se busca y se guarda al momento, sin esperar a "Guardar".</summary>
+        private UIElement CampoCiudad()
+        {
+            var sp = new StackPanel { Orientation = Orientation.Horizontal };
+            var tb = new TextBox { Text = Clima.Ubicacion()?.Ciudad ?? "", Width = 240, FontSize = 13, Padding = new Thickness(8, 6, 8, 6),
+                                   Background = B(Bg), Foreground = B(Fg), BorderBrush = B(Line), CaretBrush = B(Fg) };
+            var estado = new TextBlock { FontSize = 12, Foreground = B(Dim), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+            async void Buscar()
+            {
+                estado.Text = "Buscando…";
+                var r = await Clima.Buscar(tb.Text);
+                if (r != null) tb.Text = r;
+                estado.Text = r != null ? "Guardada" : "No la encuentro";
+            }
+            tb.KeyDown += (_, e) => { if (e.Key == Key.Enter) Buscar(); };
+            sp.Children.Add(tb);
+            sp.Children.Add(Boton("Buscar", false, Buscar));
+            sp.Children.Add(estado);
+            return sp;
+        }
+
         private static Border Boton(string texto, bool principal, Action click)
         {
             var b = new Border { CornerRadius = new CornerRadius(8), Padding = new Thickness(18, 9, 18, 9), Margin = new Thickness(10, 0, 0, 0), Cursor = Cursors.Hand,
@@ -286,7 +307,8 @@ namespace Okla
                 Fila("Plan de energía", Opciones(new[] { ("alto", "Alto rendimiento"), ("equilibrado", "Equilibrado"), ("", "Como Windows") }, A.GetValueOrDefault("energia", ""), v => Poner("energia", v))),
                 Fila("Ocultar la barra de tareas", SiNo("autoocultar"))));
             sp.Children.Add(Tarjeta("Escritorio", "Cada modo tiene su carpeta de escritorio en okla\\escritorios.",
-                Fila("Widget", Opciones(new[] { ("reloj", "Reloj al centro"), ("stats", "Reloj y estadísticas"), ("0", "Ninguno") }, A.GetValueOrDefault("widgets", Widgets.PorDefecto(M.Key)), v => Poner("widgets", v))),
+                Fila("Widget", Opciones(new[] { ("reloj", "Reloj, clima y calendario"), ("stats", "Reloj y estadísticas"), ("mini", "Esquina discreta"), ("0", "Ninguno") }, A.GetValueOrDefault("widgets", Widgets.PorDefecto(M.Key)), v => Poner("widgets", v))),
+                Fila("Ciudad del clima", CampoCiudad(), "Para los widgets y la barra de Fedora. Común a todos los modos."),
                 Fila("Iconos del sistema", Opciones(new[] { ("fedora", "Papirus"), ("gaming", "Candy (neón)"), ("potencia", "WhiteSur"), ("0", "Windows") }, A.GetValueOrDefault("iconos-sistema", IconosSistema.PorDefecto(M.Key)), v => Poner("iconos-sistema", v))),
                 Fila("Iconos del escritorio", SiNo("iconos", "Visibles", "Ocultos")),
                 Fila("Tamaño de los iconos", Opciones(new[] { ("32", "Pequeños"), ("48", "Medianos"), ("64", "Grandes"), ("96", "Enormes") }, A.GetValueOrDefault("tamano-iconos", ""), v => Poner("tamano-iconos", v))),

@@ -431,6 +431,12 @@ namespace Okla
                 sp.Children.Add(compartir);
             }
 
+            // Ciudad para el clima de los widgets (opcional; se puede cambiar en el editor).
+            var ciudad = new TextBox { Text = Clima.Ubicacion()?.Ciudad ?? "", Width = 260, HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(6, 4, 6, 4),
+                                       Background = new SolidColorBrush(Color.FromRgb(0x24, 0x28, 0x30)), Foreground = Fg, BorderBrush = Dim, CaretBrush = Fg };
+            sp.Children.Add(new TextBlock { Text = "Tu ciudad, para el clima de los widgets (opcional):", Foreground = Fg, Margin = new Thickness(2, 16, 0, 6) });
+            sp.Children.Add(ciudad);
+
             var sig = new Button { Content = "Siguiente", Padding = new Thickness(22, 8, 22, 8), Margin = new Thickness(0, 18, 0, 0), HorizontalAlignment = HorizontalAlignment.Right };
             Estilo(sig);
             sig.Click += (_, _) =>
@@ -443,6 +449,7 @@ namespace Okla
                     return;
                 }
                 Directory.CreateDirectory(Paths.Config);
+                if (!string.IsNullOrWhiteSpace(ciudad.Text) && ciudad.Text != Clima.Ubicacion()?.Ciudad) _ = Clima.Buscar(ciudad.Text);
                 File.WriteAllText(ModeStore.ModulosFile, JsonSerializer.Serialize(elegidos));
                 Instalador.ModosElegidos = new HashSet<string>(elegidos);
                 Log.Info("Instalador: modos elegidos " + string.Join(", ", elegidos));
