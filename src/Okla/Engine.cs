@@ -93,11 +93,14 @@ namespace Okla
         /// <returns>Lista de errores legibles (vacía si todo fue bien).</returns>
         /// <summary>Cuántos mods de Windhawk cambió el último Apply (la barra tarda en redibujarse).</summary>
         public int LastWindhawkChanges { get; private set; }
+        /// <summary>Ids de los ajustes que cambió el último Apply.</summary>
+        public HashSet<string> LastChanged { get; private set; } = new();
 
         public List<string> Apply(Dictionary<string, string>? perfil, Action<string>? progreso = null)
         {
             int wh = 0;
             var errores = new System.Collections.Concurrent.ConcurrentBag<string>();
+            var cambiados = new System.Collections.Concurrent.ConcurrentDictionary<string, byte>();
             bool colores = false;
 
             bool Run(Setting s)
@@ -120,6 +123,7 @@ namespace Okla
                     progreso?.Invoke(s.Nombre);
                     s.Apply(target);
                     if (s is WindhawkModSetting) System.Threading.Interlocked.Increment(ref wh);
+                    cambiados[s.Id] = 0;
                     Log.Info($"  {s.Id} ({t0.ElapsedMilliseconds} ms): {Short(now)} -> {Short(want)}");
                     return true;
                 }
@@ -174,6 +178,7 @@ namespace Okla
                 }
             }
             LastWindhawkChanges = wh;
+            LastChanged = new HashSet<string>(cambiados.Keys);
             return errores.ToList();
         }
 

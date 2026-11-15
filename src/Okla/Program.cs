@@ -526,6 +526,7 @@ namespace Okla
                     {
                         errores = _engine.Apply(perfil, ls == null ? null : ls.Report);
                         whChanged = _engine.LastWindhawkChanges > 0;
+                        var cambiados = _engine.LastChanged;   // la segunda pasada lo reemplaza
                         if (whChanged)
                         {
                             // Segunda pasada: algunos mods, al apagarse, tocan cosas de Windows (p. ej. la barra
@@ -540,6 +541,14 @@ namespace Okla
                                 System.Threading.Thread.Sleep(1500);
                                 WindhawkModSetting.Rebump("windows-11-taskbar-styler");
                                 Log.Info("  estilo de la barra: aplicado otra vez al final");
+                            }
+                            // Al quitar o poner el estilo del menú Inicio, el Inicio y el buscador se quedan con restos
+                            // del estilo anterior (se ven rotos). Se reinician: Windows los vuelve a abrir solos, limpios.
+                            if (cambiados.Contains("wh:windows-11-start-menu-styler") || _engine.LastChanged.Contains("wh:windows-11-start-menu-styler"))
+                            {
+                                ls?.Report("Menú Inicio");
+                                System.Threading.Thread.Sleep(1200);   // que Windhawk termine de cargar/quitar el mod
+                                BarraSalud.ReiniciarInicio();
                             }
                         }
                     }

@@ -45,6 +45,16 @@ namespace Okla
             return true;
         }
 
+        /// <summary>Reinicia el menú Inicio y el buscador (Windows los vuelve a abrir solos).</summary>
+        public static void ReiniciarInicio()
+        {
+            int n = 0;
+            foreach (var nombre in new[] { "StartMenuExperienceHost", "SearchHost" })
+                foreach (var p in Process.GetProcessesByName(nombre))
+                    try { p.Kill(); p.WaitForExit(2000); n++; } catch (Exception ex) { Log.Error($"Reiniciar {nombre}: {ex.Message}"); }
+            Log.Info($"  menú Inicio y buscador reiniciados ({n})");
+        }
+
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindow(string c, string? t);
         [DllImport("user32.dll")] private static extern IntPtr SendMessageTimeout(IntPtr h, uint m, IntPtr w, IntPtr l, uint f, uint t, out IntPtr r);
     }
